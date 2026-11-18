@@ -1,0 +1,46 @@
+<%- include('../partials/head') %>
+<% const ok = v.status === 'checked_in'; %>
+<section class="pass <%= v.status %>">
+  <div class="pass-status"><%= ok ? 'CHECKED IN' : statusLabel(v.status).toUpperCase() %></div>
+  <% if (user.has_selfie) { %><img class="pass-photo" src="/files/user/<%= v.user_id %>/selfie" alt="Verified photo"><% } else { %><div class="pass-photo blank">No photo on file</div><% } %>
+  <h1><%= user.name %></h1>
+  <p class="pass-company"><%= v.company_name || 'Visitor' %></p>
+  <p><%= v.store_name %> · <%= VISIT_TYPES[v.visit_type] %></p>
+  <% if (v.check_in_at) { %><p class="pass-time">In since <%= fmtTime(v.check_in_at, v.timezone) %></p><% } %>
+  <% if (v.check_out_at) { %><p>Out <%= fmtTime(v.check_out_at, v.timezone) %></p><% } %>
+</section>
+
+<% if (v.status === 'pending_approval') { %>
+  <section class="card"><p><strong>Waiting for the receiver.</strong> Show them this screen.</p>
+  <ul><% v.soft_failures.forEach(function(f) { %><li><%= f %></li><% }) %></ul></section>
+<% } else if (v.status === 'blocked') { %>
+  <section class="card error-card"><p><strong>Check-in blocked.</strong> The receiver has been alerted.</p>
+  <ul><% v.hard_failures.forEach(function(f) { %><li><%= f %></li><% }) %></ul>
+  <% if (v.hard_failures.every(function(f){ return f.indexOf('Insurance:') === 0; })) { %><p class="muted">A store manager can approve an insurance exception for this visit.</p><% } %></section>
+<% } %>
+<% if (['pending_approval','blocked'].includes(v.status)) { %>
+  <form method="post" action="/visit/<%= v.id %>/cancel"><%- include('../partials/csrf') %><button class="btn block">Cancel check-in</button></form>
+<% } %>
+
+<% if (ok) { %>
+<section class="card">
+  <h2>Check out</h2>
+  <form method="post" action="/visit/<%= v.id %>/checkout" enctype="multipart/form-data" class="stack">
+    <%- include('../partials/csrf') %>
+    <fieldset><legend>Work done</legend>
+      <% Object.keys(WORK_TYPES).forEach(function(k) { %>
+        <div class="work-row"><label class="check"><input type="checkbox" name="work" value="<%= k %>"> <%= WORK_TYPES[k] %></label>
+        <input type="number" name="qty_<%= k %>" min="0" placeholder="qty" aria-label="Quantity for <%= WORK_TYPES[k] %>"></div>
+      <% }) %>
+    </fieldset>
+    <label>Notes<textarea name="notes" rows="2" maxlength="1000"></textarea></label>
+    <label>Shelf photos (up to 4)<input type="file" name="photos" accept="image/*" multiple></label>
+    <button class="btn primary big block">Check out</button>
+  </form>
+</section>
+<% } %>
+<% if (work.length) { %>
+<section class="card"><h2>Work recorded</h2><ul><% work.forEach(function(w) { %><li><%= WORK_TYPES[w.type] || w.type %><%= w.quantity ? ' × ' + w.quantity : '' %></li><% }) %></ul></section>
+<% } %>
+<p><a href="/rep">Back to my visits</a></p>
+<%- include('../partials/foot') %>

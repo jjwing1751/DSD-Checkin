@@ -1,0 +1,23 @@
+<%- include('../partials/head') %>
+<section class="card narrow">
+  <p class="muted">#<%= store.store_number %></p>
+  <h1><%= store.name %></h1>
+  <p><%= user.name %><%= company ? ' · ' + company.name : '' %></p>
+  <form method="post" action="/s/<%= token %>/checkin" id="checkin-form" class="stack">
+    <%- include('../partials/csrf') %>
+    <input type="hidden" name="lat"><input type="hidden" name="lng"><input type="hidden" name="accuracy">
+    <% if (expected.length) { %>
+      <label>Scheduled visit<select name="expected_visit_id">
+        <% expected.forEach(function(e) { %><option value="<%= e.id %>"><%= VISIT_TYPES[e.visit_type] %> · <%= fmtClock(e.window_start) %>–<%= fmtClock(e.window_end) %></option><% }) %>
+        <option value="">Unscheduled visit</option>
+      </select></label>
+    <% } %>
+    <label>Visit type<select name="visit_type">
+      <% Object.keys(VISIT_TYPES).forEach(function(k) { %><option value="<%= k %>" <%= k === defaultType ? 'selected' : '' %>><%= VISIT_TYPES[k] %></option><% }) %>
+    </select></label>
+    <label>Purpose or work order (optional)<input name="purpose" maxlength="300"></label>
+    <p class="muted small" id="geo-status">Checking your location…</p>
+    <button class="btn primary big block" id="checkin-btn">Check in</button>
+  </form>
+</section>
+<%- include('../partials/foot') %>

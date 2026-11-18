@@ -1,0 +1,23 @@
+<%- include('../partials/head', { wide: true }) %>
+<h1>DSD ops</h1>
+<div class="stats">
+  <a class="stat" href="/admin/identity"><span><%= counts.identity %></span>Identity reviews</a>
+  <a class="stat" href="/admin/insurance"><span><%= counts.policies %></span>COIs to verify</a>
+  <a class="stat" href="/admin/credentials"><span><%= counts.credentials %></span>Credentials to verify</a>
+  <a class="stat" href="/admin/vendors"><span><%= counts.vendors %></span>Vendor requests</a>
+  <a class="stat" href="/stores"><span><%= counts.in_store %></span>In stores now</a>
+  <a class="stat" href="/stores"><span><%= counts.waiting %></span>Waiting at backdoors</a>
+  <a class="stat" href="/admin/stores"><span><%= counts.stores %></span>Active stores</a>
+  <a class="stat" href="/admin/audit"><span><%= counts.visits_24h %></span>Visits, last 24h</a>
+</div>
+<section class="card">
+  <div class="row-between"><h2>Alerts</h2><a class="btn small" href="/admin/visits.csv">Export visits (30 days)</a></div>
+  <% if (!recentAlerts.length) { %><p class="muted">No open alerts.</p><% } %>
+  <ul class="list">
+  <% recentAlerts.forEach(function(a) { %>
+    <li class="row-between alert-<%= a.severity %>"><span><%= a.message %> <span class="muted small"><%= a.store_name ? a.store_name + ' · ' : '' %><%= fmtDateTime(a.created_at) %></span></span>
+    <form method="post" action="/admin/alerts/<%= a.id %>/dismiss"><%- include('../partials/csrf') %><button class="linkish">Dismiss</button></form></li>
+  <% }) %>
+  </ul>
+</section>
+<%- include('../partials/foot') %>

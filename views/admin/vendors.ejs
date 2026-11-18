@@ -1,0 +1,20 @@
+<%- include('../partials/head', { wide: true }) %>
+<h1>Vendor companies</h1>
+<details class="card"><summary><strong>+ Add a vendor</strong></summary>
+  <form method="post" action="/admin/vendors" class="form-grid"><%- include('../partials/csrf') %>
+    <label>Name<input name="name" required></label>
+    <label>Vendor number<input name="vendor_number"></label>
+    <label>Approved email domains (comma separated)<input name="email_domains" placeholder="acmesnacks.com"></label>
+    <label>Categories<input name="categories" placeholder="snacks, beverage"></label>
+    <label class="check"><input type="checkbox" name="delivers_by_vehicle" checked> Delivers by vehicle</label>
+    <button class="btn primary">Add</button>
+  </form>
+</details>
+<section class="card">
+<table class="table compact"><thead><tr><th>Name</th><th>Domains</th><th>Categories</th><th>Active reps</th><th>COIs to review</th><th>Next policy expiry</th><th>Status</th></tr></thead><tbody>
+<% vendors.forEach(function(v) { %>
+<tr><td><a href="/admin/vendors/<%= v.id %>"><%= v.name %></a></td><td><%= v.email_domains.join(', ') %></td><td><%= v.categories.join(', ') %></td><td><%= v.active_reps %></td>
+<td><%= v.policies_to_review || '' %></td><td><%= v.next_expiry || '' %></td><td><span class="pill <%= v.status %>"><%= statusLabel(v.status) %></span></td></tr>
+<% }) %>
+</tbody></table></section>
+<%- include('../partials/foot') %>

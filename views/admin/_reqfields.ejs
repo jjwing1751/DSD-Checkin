@@ -1,0 +1,10 @@
+<label>Coverage<input name="coverage_type" list="coverages" value="<%= r.coverage_type || '' %>" required></label>
+<label>Min per occurrence ($)<input name="min_per_occurrence" value="<%= r.min_per_occurrence == null ? '' : r.min_per_occurrence %>" inputmode="numeric"></label>
+<label>Min aggregate ($)<input name="min_aggregate" value="<%= r.min_aggregate == null ? '' : r.min_aggregate %>" inputmode="numeric"></label>
+<label class="check"><input type="checkbox" name="require_additional_insured" <%= r.require_additional_insured ? 'checked' : '' %>> Retailer must be additional insured</label>
+<fieldset><legend>Applies to visit types (none = all)</legend>
+<% Object.keys(VISIT_TYPES).forEach(function(k) { %><label class="check"><input type="checkbox" name="visit_types" value="<%= k %>" <%= (r.visit_types || []).includes(k) ? 'checked' : '' %>> <%= VISIT_TYPES[k] %></label><% }) %>
+</fieldset>
+<label>Only vendor categories (blank = all)<input name="categories" value="<%= (r.categories || []).join(', ') %>"></label>
+<label class="check"><input type="checkbox" name="vehicle_only" <%= r.vehicle_only ? 'checked' : '' %>> Only companies that deliver by vehicle</label>
+<label>Notes<input name="notes" value="<%= r.notes || '' %>"></label>

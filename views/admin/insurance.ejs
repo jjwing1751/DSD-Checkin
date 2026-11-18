@@ -1,0 +1,21 @@
+<%- include('../partials/head', { wide: true }) %>
+<h1>Insurance requirements</h1>
+<p class="muted">Checked at every check-in. A missing, expired or under-limit policy blocks check-in unless a store manager (one visit) or DSD ops (company, time-limited) overrides it.</p>
+<datalist id="coverages"><% COVERAGE_TYPES.forEach(function(c) { %><option value="<%= c %>"><% }) %></datalist>
+<% if (pendingPolicies.length) { %>
+<section class="card attention"><h2>Certificates waiting for verification (<%= pendingPolicies.length %>)</h2>
+<ul class="list"><% pendingPolicies.forEach(function(p) { %><li><a href="/admin/vendors/<%= p.vendor_id %>"><%= p.vendor_name %></a> · <%= p.coverage_type %> · <%= p.policy_number || '' %> · expires <%= p.expiry_date %></li><% }) %></ul></section>
+<% } %>
+<% reqs.forEach(function(r) { %>
+<details class="card <%= r.active ? '' : 'struck' %>">
+  <summary><strong><%= r.coverage_type %></strong> · <%= r.min_per_occurrence != null ? money(r.min_per_occurrence) + ' per occ.' : '' %> <%= r.min_aggregate != null ? money(r.min_aggregate) + ' agg.' : '' %> <%= r.require_additional_insured ? '· AI' : '' %>
+    · <%= r.visit_types.length ? r.visit_types.map(v => VISIT_TYPES[v]).join(', ') : 'all visit types' %><%= r.vehicle_only ? ' · vehicle delivery only' : '' %><%= r.categories.length ? ' · ' + r.categories.join(', ') : '' %> <%= r.active ? '' : '(inactive)' %></summary>
+  <form method="post" action="/admin/insurance/<%= r.id %>" class="form-grid"><%- include('../partials/csrf') %><%- include('_reqfields', { r: r }) %><button class="btn primary">Save</button></form>
+  <form method="post" action="/admin/insurance/<%= r.id %>"><%- include('../partials/csrf') %><button class="btn" name="action" value="toggle"><%= r.active ? 'Deactivate' : 'Activate' %></button></form>
+</details>
+<% }) %>
+<% if (!reqs.length) { %><p class="flash info">No requirements yet, so insurance never blocks check-in. Add the coverages your risk team asks for.</p><% } %>
+<details class="card" <%= reqs.length ? '' : 'open' %>><summary><strong>+ Add a requirement</strong></summary>
+  <form method="post" action="/admin/insurance" class="form-grid"><%- include('../partials/csrf') %><%- include('_reqfields', { r: {} }) %><button class="btn primary">Add requirement</button></form>
+</details>
+<%- include('../partials/foot') %>

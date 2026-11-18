@@ -1,0 +1,12 @@
+<%- include('../partials/head') %>
+<h1>Visit history</h1>
+<section class="card">
+<table class="table">
+<thead><tr><th>Store</th><th>In</th><th>Out</th><th>Status</th></tr></thead>
+<tbody>
+<% visits.forEach(function(v) { %>
+<tr><td><%= v.store_name %></td><td><%= fmtDateTime(v.check_in_at, v.timezone) %></td><td><%= fmtTime(v.check_out_at, v.timezone) %></td><td><span class="pill <%= v.status %>"><%= statusLabel(v.status) %></span></td></tr>
+<% }) %>
+</tbody></table>
+</section>
+<%- include('../partials/foot') %>

@@ -1,0 +1,75 @@
+<%- include('../partials/head', { wide: true }) %>
+<p><a href="/admin/vendors">← Vendors</a></p>
+<h1><%= c.name %> <span class="pill <%= c.status %>"><%= statusLabel(c.status) %></span></h1>
+<form method="post" action="/admin/vendors/<%= c.id %>" class="btn-row"><%- include('../partials/csrf') %>
+  <% if (c.status !== 'active') { %><button class="btn primary" name="status_action" value="active">Activate company</button><% } %>
+  <% if (c.status !== 'suspended') { %><button class="btn danger" name="status_action" value="suspended">Suspend company</button><% } %>
+</form>
+
+<section class="card">
+  <h2>Insurance check by visit type (today)</h2>
+  <table class="table compact"><thead><tr><th>Visit type</th><th>Result</th><th>Details</th></tr></thead><tbody>
+  <% Object.keys(insByType).forEach(function(k) { const r = insByType[k]; %>
+    <tr><td><%= VISIT_TYPES[k] %></td><td><span class="pill <%= r.compliant ? 'verified' : (r.override ? 'warn' : 'rejected') %>"><%= r.compliant ? 'Pass' : (r.override ? 'Override' : 'Blocked') %></span></td>
+    <td class="small"><%= r.requirements.filter(x => !x.ok).map(x => x.coverage_type + ': ' + x.reason).join('; ') || (r.requirements.length ? 'All requirements met' : 'No requirements apply') %></td></tr>
+  <% }) %>
+  </tbody></table>
+  <% if (active) { %>
+    <p class="flash warning">Company override active until <%= fmtDateTime(active.expires_at) %> (<%= active.reason %>, by <%= active.approved_by_name %>).</p>
+  <% } %>
+  <details><summary class="btn">Grant a company insurance override</summary>
+    <form method="post" action="/admin/vendors/<%= c.id %>/override" class="form-grid"><%- include('../partials/csrf') %>
+      <label>Days (max <%= maxDays %>)<input type="number" name="days" min="1" max="<%= maxDays %>" value="7"></label>
+      <label>Reason<input name="reason" required placeholder="Renewed COI in review"></label>
+      <button class="btn warn">Grant override</button>
+    </form>
+  </details>
+  <% if (overrides.length) { %>
+  <h3>Override history</h3>
+  <ul class="list small"><% overrides.forEach(function(o) { %><li class="row-between"><span><%= fmtDateTime(o.created_at) %> → <%= fmtDateTime(o.expires_at) %> · <%= o.reason %> · <%= o.approved_by_name %><%= o.revoked_at ? ' · revoked' : '' %></span>
+    <% if (!o.revoked_at && new Date(o.expires_at) > new Date()) { %><form method="post" action="/admin/overrides/<%= o.id %>/revoke"><%- include('../partials/csrf') %><button class="linkish">Revoke</button></form><% } %></li><% }) %></ul>
+  <% } %>
+</section>
+
+<section class="card">
+  <h2>Certificates of insurance</h2>
+  <% if (!policies.length) { %><p class="muted">None uploaded. The company admin uploads COIs from their "My company" page.</p><% } %>
+  <% policies.forEach(function(p) { %>
+    <div class="policy">
+      <div class="row-between"><strong><%= p.coverage_type %></strong><span class="pill <%= p.status %>"><%= statusLabel(p.status) %></span></div>
+      <p class="small"><%= p.carrier || '' %> · <%= p.policy_number || '' %> · <%= money(p.per_occurrence) %> per occurrence / <%= money(p.aggregate) %> aggregate · AI: <%= p.additional_insured ? 'yes' : 'no' %> · <%= p.effective_date %> → <%= p.expiry_date %>
+      <% if (p.has_doc) { %> · <a href="/files/policy/<%= p.id %>" target="_blank" rel="noopener">View COI</a><% } %>
+      <% if (p.verified_by_name) { %> · <%= statusLabel(p.status) %> by <%= p.verified_by_name %><% } %><%= p.reject_reason ? ' · ' + p.reject_reason : '' %></p>
+      <% if (p.status === 'submitted') { %>
+      <form method="post" action="/admin/policies/<%= p.id %>" class="inline-form"><%- include('../partials/csrf') %>
+        <input name="per_occurrence" placeholder="Correct per occurrence $" inputmode="numeric">
+        <input name="aggregate" placeholder="Correct aggregate $" inputmode="numeric">
+        <label class="check"><input type="checkbox" name="additional_insured" <%= p.additional_insured ? 'checked' : '' %>> AI confirmed</label>
+        <button class="btn primary" name="action" value="verify">Verify</button>
+        <input name="reason" placeholder="Reason if rejecting">
+        <button class="btn danger" name="action" value="reject">Reject</button>
+      </form>
+      <% } %>
+    </div>
+  <% }) %>
+</section>
+
+<section class="card">
+  <h2>Company details</h2>
+  <form method="post" action="/admin/vendors/<%= c.id %>" class="form-grid"><%- include('../partials/csrf') %>
+    <label>Name<input name="name" value="<%= c.name %>"></label>
+    <label>Vendor number<input name="vendor_number" value="<%= c.vendor_number || '' %>"></label>
+    <label>Approved email domains<input name="email_domains" value="<%= c.email_domains.join(', ') %>"></label>
+    <label>Categories<input name="categories" value="<%= c.categories.join(', ') %>"></label>
+    <label class="check"><input type="checkbox" name="delivers_by_vehicle" <%= c.delivers_by_vehicle ? 'checked' : '' %>> Delivers by vehicle</label>
+    <label>Notes<textarea name="notes" rows="2"><%= c.notes || '' %></textarea></label>
+    <button class="btn primary">Save</button>
+  </form>
+  <% if (c.requested_by_email) { %><p class="muted small">Requested by <%= c.requested_by_email %></p><% } %>
+</section>
+
+<section class="card"><h2>Reps (<%= reps.length %>)</h2>
+<table class="table compact"><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Verified</th></tr></thead><tbody>
+<% reps.forEach(function(r) { %><tr><td><a href="/admin/users/<%= r.id %>"><%= r.name || '' %></a><%= r.is_vendor_admin ? ' (admin)' : '' %></td><td><%= r.email %></td><td><%= ROLES[r.role] %></td><td><span class="pill <%= r.status %>"><%= statusLabel(r.status) %></span></td><td><%= r.identity_verified_at ? fmtDate(new Date(r.identity_verified_at).toISOString().slice(0,10)) : '' %></td></tr><% }) %>
+</tbody></table></section>
+<%- include('../partials/foot') %>

@@ -1,0 +1,40 @@
+<%- include('../partials/head') %>
+<p><a href="/store/<%= store.id %>">← <%= store.name %></a></p>
+<h1>Visit #<%= v.id %></h1>
+<section class="card">
+  <%- include('_visitcard', { v: v }) %>
+  <dl class="dl">
+    <dt>Status</dt><dd><span class="pill <%= v.status %>"><%= statusLabel(v.status) %></span></dd>
+    <dt>Method</dt><dd><%= v.method %><%= v.check_in_distance_m != null ? ' · ' + v.check_in_distance_m + ' m from store' : '' %></dd>
+    <dt>Checked in</dt><dd><%= fmtDateTime(v.check_in_at, store.timezone) %></dd>
+    <dt>Checked out</dt><dd><%= fmtDateTime(v.check_out_at, store.timezone) %></dd>
+    <% if (v.approved_by_name) { %><dt>Approved by</dt><dd><%= v.approved_by_name %></dd><% } %>
+    <% if (v.override_reason) { %><dt>Override</dt><dd><%= v.override_reason %> (<%= v.override_by_name %>)</dd><% } %>
+    <dt>Hard checks</dt><dd><%= v.hard_failures.length ? v.hard_failures.join('; ') : 'Passed' %></dd>
+    <dt>Soft checks</dt><dd><%= v.soft_failures.length ? v.soft_failures.join('; ') : 'Passed' %></dd>
+    <dt>Insurance at check-in</dt><dd>
+      <% const ins = v.insurance_status || {}; %>
+      <%= ins.compliant ? 'Compliant' : (ins.override ? 'Override (' + ins.override.scope + '): ' + ins.override.reason : 'Not compliant') %>
+      <% (ins.requirements || []).forEach(function(r) { %><br><span class="small"><%= r.ok ? '✓' : '✗' %> <%= r.coverage_type %><%= r.policy_number ? ' · ' + r.policy_number : '' %><%= r.reason ? ' · ' + r.reason : '' %></span><% }) %>
+    </dd>
+    <% if (v.work_notes) { %><dt>Rep notes</dt><dd><%= v.work_notes %></dd><% } %>
+  </dl>
+</section>
+<% if (work.length || photos.length) { %>
+<section class="card"><h2>Work proof</h2>
+  <ul><% work.forEach(function(w) { %><li><%= WORK_TYPES[w.type] || w.type %><%= w.quantity ? ' × ' + w.quantity : '' %></li><% }) %></ul>
+  <div class="photos"><% photos.forEach(function(p) { %><a href="/files/visit-photo/<%= p.id %>"><img src="/files/visit-photo/<%= p.id %>" alt="Visit photo"></a><% }) %></div>
+</section>
+<% } %>
+<section class="card"><h2>Receiver note</h2>
+  <form method="post" action="/store/<%= store.id %>/visits/<%= v.id %>/note" class="stack">
+    <%- include('../partials/csrf') %>
+    <textarea name="note" rows="2"><%= v.receiver_note || '' %></textarea>
+    <label class="check"><input type="checkbox" name="discrepancy" <%= v.discrepancy ? 'checked' : '' %>> Discrepancy</label>
+    <button class="btn">Save note</button>
+  </form>
+</section>
+<section class="card"><h2>Audit trail</h2>
+  <ul class="list small"><% events.forEach(function(e) { %><li><%= fmtDateTime(e.at, store.timezone) %> · <%= e.action %> · <%= e.actor_email || 'system' %></li><% }) %></ul>
+</section>
+<%- include('../partials/foot') %>

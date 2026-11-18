@@ -1,0 +1,119 @@
+<%- include('../partials/head', { wide: true }) %>
+<div class="row-between">
+  <div><p class="muted">#<%= store.store_number %> · receiving <%= fmtClock(store.receiving_open) %>–<%= fmtClock(store.receiving_close) %></p><h1><%= store.name %></h1></div>
+  <div class="btn-row"><a class="btn" href="/store/<%= store.id %>/roster">Evacuation roster (<%= inStore.length %>)</a><a class="btn" href="/store/<%= store.id %>/history">History</a></div>
+</div>
+
+<% if (waiting.length) { %>
+<section class="card attention">
+  <h2>Waiting at the backdoor (<%= waiting.length %>)</h2>
+  <% waiting.forEach(function(v) { %>
+    <div class="waiting-item">
+      <%- include('_visitcard', { v: v }) %>
+      <% if (v.status === 'blocked') { %>
+        <p class="error"><strong>Blocked:</strong> <%= v.hard_failures.join('; ') %></p>
+        <% const insOnly = v.hard_failures.every(function(f){ return f.indexOf('Insurance:') === 0; }); %>
+        <% if (insOnly && ['store_manager','dsd_ops','admin'].includes(user.role)) { %>
+          <form method="post" action="/store/<%= store.id %>/visits/<%= v.id %>/override" class="inline-form">
+            <%- include('../partials/csrf') %>
+            <input name="reason" placeholder="Reason for insurance override (required)" required>
+            <button class="btn warn">Override for this visit</button>
+          </form>
+        <% } else if (insOnly) { %><p class="muted">A store manager can override this insurance block.</p><% } %>
+      <% } else { %>
+        <% if (v.soft_failures.length) { %><p class="warn-text"><strong>Check:</strong> <%= v.soft_failures.join('; ') %></p><% } %>
+        <form method="post" action="/store/<%= store.id %>/visits/<%= v.id %>/approve" class="inline-form">
+          <%- include('../partials/csrf') %>
+          <% if (v.soft_failures.length) { %><input name="reason" placeholder="Reason to admit (required)" required><% } %>
+          <button class="btn primary">Photo matches · admit</button>
+        </form>
+      <% } %>
+      <form method="post" action="/store/<%= store.id %>/visits/<%= v.id %>/deny" class="inline-form">
+        <%- include('../partials/csrf') %>
+        <input name="reason" placeholder="Reason (optional)"><button class="btn danger">Deny</button>
+      </form>
+    </div>
+  <% }) %>
+</section>
+<% } %>
+
+<div class="grid2">
+<section class="card">
+  <h2>In store now (<%= inStore.length %>)</h2>
+  <% if (!inStore.length) { %><p class="muted">Nobody is checked in.</p><% } %>
+  <% inStore.forEach(function(v) { %>
+    <div class="instore-item <%= v.expected_out_at && new Date(v.expected_out_at) < new Date() ? 'overdue' : '' %>">
+      <%- include('_visitcard', { v: v }) %>
+      <div class="btn-row">
+        <% if (!v.acknowledged_at) { %>
+          <form method="post" action="/store/<%= store.id %>/visits/<%= v.id %>/ack"><%- include('../partials/csrf') %><button class="btn primary small">Acknowledge</button></form>
+        <% } %>
+        <details><summary class="btn small">Check out</summary>
+          <form method="post" action="/store/<%= store.id %>/visits/<%= v.id %>/checkout" class="stack">
+            <%- include('../partials/csrf') %>
+            <input name="note" placeholder="Delivery note (optional)">
+            <label class="check"><input type="checkbox" name="discrepancy"> Discrepancy</label>
+            <button class="btn small">Confirm check-out</button>
+          </form>
+        </details>
+        <a class="btn small" href="/store/<%= store.id %>/visits/<%= v.id %>">Details</a>
+      </div>
+    </div>
+  <% }) %>
+</section>
+
+<section class="card">
+  <h2>Today's arrivals (<%= arrivals.filter(a => a.status !== 'cancelled').length %>)</h2>
+  <% if (!arrivals.length) { %><p class="muted">No scheduled or announced visits today.</p><% } %>
+  <table class="table compact">
+  <thead><tr><th>Window</th><th>Vendor</th><th>Type</th><th>Status</th></tr></thead>
+  <tbody>
+  <% arrivals.forEach(function(a) { const h = Number(String(a.window_start).slice(0,2)); const over = load[h] > store.capacity_per_hour; %>
+    <tr class="<%= a.status === 'cancelled' ? 'struck' : '' %>">
+      <td><%= fmtClock(a.window_start) %>–<%= fmtClock(a.window_end) %><% if (over) { %> <span class="pill warn" title="More arrivals than backdoor capacity this hour">busy</span><% } %></td>
+      <td><%= a.company_name %><% if (a.planned_work) { %><br><span class="muted small"><%= a.planned_work %></span><% } %></td>
+      <td><%= VISIT_TYPES[a.visit_type] %><%= a.agreement_id ? '' : ' (announced)' %></td>
+      <td><span class="pill <%= a.status %>"><%= a.visit_status === 'checked_in' ? 'In store' : statusLabel(a.status) %></span><% if (a.eta && a.status !== 'completed') { %><br><span class="small">ETA <%= fmtTime(a.eta, store.timezone) %></span><% } %></td>
+    </tr>
+  <% }) %>
+  </tbody></table>
+</section>
+</div>
+
+<% if (doneToday.length) { %>
+<section class="card">
+  <h2>Earlier today (<%= doneToday.length %>)</h2>
+  <table class="table compact"><thead><tr><th>Person</th><th>Company</th><th>In</th><th>Out</th><th>Status</th></tr></thead><tbody>
+  <% doneToday.forEach(function(v) { %>
+    <tr><td><a href="/store/<%= store.id %>/visits/<%= v.id %>"><%= v.rep_name %></a></td><td><%= v.company_name || '' %></td><td><%= fmtTime(v.check_in_at, store.timezone) %></td><td><%= fmtTime(v.check_out_at, store.timezone) %></td><td><span class="pill <%= v.status %>"><%= statusLabel(v.status) %></span></td></tr>
+  <% }) %>
+  </tbody></table>
+</section>
+<% } %>
+
+<% if (storeAlerts.length) { %>
+<section class="card">
+  <h2>Alerts</h2>
+  <ul class="list">
+  <% storeAlerts.forEach(function(a) { %>
+    <li class="row-between alert-<%= a.severity %>"><span><%= a.message %> <span class="muted small"><%= fmtTime(a.created_at, store.timezone) %></span></span>
+    <form method="post" action="/store/<%= store.id %>/alerts/<%= a.id %>/dismiss"><%- include('../partials/csrf') %><button class="linkish">Dismiss</button></form></li>
+  <% }) %>
+  </ul>
+</section>
+<% } %>
+
+<% if (['store_manager','dsd_ops','admin'].includes(user.role)) { %>
+<details class="card">
+  <summary><strong>Receiving hours and backdoor capacity</strong></summary>
+  <form method="post" action="/store/<%= store.id %>/settings" class="form-grid">
+    <%- include('../partials/csrf') %>
+    <label>Receiving opens<input type="time" name="receiving_open" value="<%= String(store.receiving_open).slice(0,5) %>"></label>
+    <label>Receiving closes<input type="time" name="receiving_close" value="<%= String(store.receiving_close).slice(0,5) %>"></label>
+    <label>Store closes<input type="time" name="store_close" value="<%= String(store.store_close).slice(0,5) %>"></label>
+    <label>Backdoor slots per hour<input type="number" name="capacity_per_hour" min="1" value="<%= store.capacity_per_hour %>"></label>
+    <button class="btn primary">Save</button>
+  </form>
+</details>
+<% } %>
+<%- include('../partials/foot') %>

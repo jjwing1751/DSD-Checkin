@@ -1,0 +1,25 @@
+<%- include('../partials/head', { wide: true }) %>
+<h1>Vendor compliance</h1>
+<% const p = (x) => x == null ? '–' : Math.round(x * 100) + '%'; %>
+<form class="filters" method="get">
+  <label>From<input type="date" name="from" value="<%= from %>"></label>
+  <label>To<input type="date" name="to" value="<%= to %>"></label>
+  <label>Store<select name="store"><option value="">All stores</option><% stores.forEach(function(s) { %><option value="<%= s.id %>" <%= storeId === s.id ? 'selected' : '' %>>#<%= s.store_number %> <%= s.name %></option><% }) %></select></label>
+  <button class="btn">Show</button>
+  <button class="btn" name="format" value="csv">Download CSV</button>
+</form>
+<p class="muted small">Service Score weights: frequency <%= weights.frequency %>, on-time <%= weights.on_time %>, dwell <%= weights.dwell %>, coverage <%= weights.coverage %>. Visits auto-closed with no check-out are excluded from dwell.</p>
+<section class="card scroll-x">
+<table class="table compact">
+<thead><tr><th>Vendor</th><th>Score</th><th>Scheduled</th><th>Frequency</th><th>On time</th><th>Missed</th><th>Avg dwell</th><th>Dwell vs agreed</th><th>&lt;50% dwell</th><th>Coverage</th><th>Work proof</th><th>Credentials OK</th><th>Overrides</th><th>Advance notice</th><th>No check-out</th></tr></thead>
+<tbody>
+<% rows.forEach(function(r) { %>
+<tr><td><%= r.vendor %></td><td><strong class="<%= r.service_score != null && r.service_score < 80 ? 'error' : '' %>"><%= r.service_score == null ? '–' : r.service_score %></strong></td>
+<td><%= r.completed %>/<%= r.scheduled %><%= r.unscheduled ? ' (+' + r.unscheduled + ' unsched.)' : '' %></td><td><%= p(r.frequency) %></td><td><%= p(r.on_time) %></td><td><%= r.missed %></td>
+<td><%= r.avg_dwell_min == null ? '–' : r.avg_dwell_min + 'm' %></td><td><%= p(r.dwell_ratio) %></td><td><%= p(r.dwell_under_half) %></td>
+<td><%= p(r.coverage) %> <span class="muted small">of <%= r.stores_in_agreement %></span></td><td><%= p(r.work_proof) %></td><td><%= p(r.credential_compliance) %></td><td><%= r.overrides %></td><td><%= p(r.advance_notice) %></td><td><%= r.no_checkout %></td></tr>
+<% }) %>
+</tbody></table>
+<% if (!rows.length) { %><p class="muted">No scheduled or completed vendor visits in this range.</p><% } %>
+</section>
+<%- include('../partials/foot') %>

@@ -1,0 +1,26 @@
+<%- include('../partials/head', { wide: true }) %>
+<h1>Users</h1>
+<details class="card"><summary><strong>+ Add store or HQ staff</strong></summary>
+  <form method="post" action="/admin/users" class="form-grid"><%- include('../partials/csrf') %>
+    <label>Email<input type="email" name="email" required></label>
+    <label>Name<input name="name"></label>
+    <label>Phone<input name="phone" type="tel"></label>
+    <label>Role<select name="role">
+      <% ['receiver','store_manager','merchant','dsd_ops'].concat(user.role === 'admin' ? ['admin'] : []).forEach(function(r) { %><option value="<%= r %>"><%= ROLES[r] %></option><% }) %>
+    </select></label>
+    <label>Store (receivers and store managers)<select name="store_id"><option value="">None</option><% stores.forEach(function(s) { %><option value="<%= s.id %>">#<%= s.store_number %> <%= s.name %></option><% }) %></select></label>
+    <label>Password (optional, 10+ chars; blank = generate)<input name="password" type="text" autocomplete="off"></label>
+    <button class="btn primary">Create user</button>
+  </form>
+  <p class="muted small">Vendor and field service reps enroll themselves with their company email; you don't add them here.</p>
+</details>
+<form class="filters" method="get">
+  <label>Search<input name="q" value="<%= q %>" placeholder="name or email"></label>
+  <label>Role<select name="role"><option value="">All</option><% Object.keys(ROLES).forEach(function(r) { %><option value="<%= r %>" <%= role === r ? 'selected' : '' %>><%= ROLES[r] %></option><% }) %></select></label>
+  <button class="btn">Filter</button>
+</form>
+<section class="card">
+<table class="table compact"><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Store / company</th><th>Status</th><th>Last sign-in</th></tr></thead><tbody>
+<% users.forEach(function(u) { %><tr><td><a href="/admin/users/<%= u.id %>"><%= u.name || '(no name)' %></a></td><td><%= u.email %></td><td><%= ROLES[u.role] %><%= u.is_vendor_admin ? ' (company admin)' : '' %></td><td><%= u.store_name || u.company || '' %></td><td><span class="pill <%= u.status %>"><%= statusLabel(u.status) %></span></td><td class="small"><%= fmtDateTime(u.last_login_at) %></td></tr><% }) %>
+</tbody></table></section>
+<%- include('../partials/foot') %>

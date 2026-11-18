@@ -1,0 +1,28 @@
+<%- include('partials/head') %>
+<section class="card narrow">
+  <h1>Create your account</h1>
+  <p class="muted"><%= email %> is verified.</p>
+  <% if (company) { %>
+    <p>You're joining <strong><%= company.name %></strong>.<% if (company.status !== 'active') { %> <span class="pill warn">Company pending approval</span><% } %></p>
+  <% } else { %>
+    <p class="flash warning">We don't recognize your company's email domain yet. Tell us about your company and DSD ops will review it. Your company needs a verified certificate of insurance before anyone can check in.</p>
+  <% } %>
+  <% if (error) { %><p class="error"><%= error %></p><% } %>
+  <form method="post" action="/enroll">
+    <%- include('partials/csrf') %>
+    <label>Full name<input name="name" value="<%= form.name || '' %>" autocomplete="name" required></label>
+    <label>Mobile phone<input name="phone" type="tel" value="<%= form.phone || '' %>" autocomplete="tel"></label>
+    <fieldset><legend>I am a</legend>
+      <label class="check"><input type="radio" name="role" value="rep" <%= form.role !== 'field_service' ? 'checked' : '' %>> Vendor rep (delivery, merchandising, sales)</label>
+      <label class="check"><input type="radio" name="role" value="field_service" <%= form.role === 'field_service' ? 'checked' : '' %>> Field service rep (equipment install or repair)</label>
+    </fieldset>
+    <% if (!company) { %>
+      <label>Company name<input name="company_name" value="<%= form.company_name || '' %>" required></label>
+      <label>Vendor number (if known)<input name="vendor_number" value="<%= form.vendor_number || '' %>"></label>
+      <label>Categories (comma separated)<input name="categories" placeholder="snacks, beverage" value="<%= form.categories || '' %>"></label>
+      <label class="check"><input type="checkbox" name="delivers_by_vehicle" checked> We deliver by vehicle</label>
+    <% } %>
+    <button class="btn primary block">Continue to identity check</button>
+  </form>
+</section>
+<%- include('partials/foot') %>

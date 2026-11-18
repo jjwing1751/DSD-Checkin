@@ -1,0 +1,8 @@
+<label>Name<input name="name" value="<%= t.name || '' %>" required placeholder="Food handler certificate"></label>
+<label>Held by<select name="holder"><option value="person" <%= t.holder !== 'company' ? 'selected' : '' %>>Each person</option><option value="company" <%= t.holder === 'company' ? 'selected' : '' %>>The vendor company</option></select></label>
+<label>If missing<select name="enforcement"><option value="soft" <%= t.enforcement !== 'hard' ? 'selected' : '' %>>Soft: receiver can admit with a reason</option><option value="hard" <%= t.enforcement === 'hard' ? 'selected' : '' %>>Hard: block check-in</option></select></label>
+<label>Valid for (days, optional)<input type="number" name="validity_days" value="<%= t.validity_days || '' %>"></label>
+<fieldset><legend>Required for visit types (none = all)</legend>
+<% Object.keys(VISIT_TYPES).forEach(function(k) { %><label class="check"><input type="checkbox" name="visit_types" value="<%= k %>" <%= (t.visit_types || []).includes(k) ? 'checked' : '' %>> <%= VISIT_TYPES[k] %></label><% }) %>
+</fieldset>
+<label>Description<input name="description" value="<%= t.description || '' %>"></label>

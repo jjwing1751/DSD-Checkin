@@ -1,0 +1,13 @@
+<label>Store number<input name="store_number" value="<%= s.store_number || '' %>" required></label>
+<label>Name<input name="name" value="<%= s.name || '' %>" required></label>
+<label>Address<input name="address" value="<%= s.address || '' %>"></label>
+<label>Region<input name="region" value="<%= s.region || '' %>"></label>
+<label>District<input name="district" value="<%= s.district || '' %>"></label>
+<label>Time zone<input name="timezone" value="<%= s.timezone || 'America/Chicago' %>" required></label>
+<label>Backdoor latitude<input name="lat" value="<%= s.lat == null ? '' : s.lat %>" inputmode="decimal"></label>
+<label>Backdoor longitude<input name="lng" value="<%= s.lng == null ? '' : s.lng %>" inputmode="decimal"></label>
+<label>Geofence radius (m)<input type="number" name="geofence_m" value="<%= s.geofence_m || 200 %>" min="25"></label>
+<label>Receiving opens<input type="time" name="receiving_open" value="<%= s.receiving_open ? String(s.receiving_open).slice(0,5) : '06:00' %>"></label>
+<label>Receiving closes<input type="time" name="receiving_close" value="<%= s.receiving_close ? String(s.receiving_close).slice(0,5) : '14:00' %>"></label>
+<label>Store closes<input type="time" name="store_close" value="<%= s.store_close ? String(s.store_close).slice(0,5) : '22:00' %>"></label>
+<label>Backdoor slots per hour<input type="number" name="capacity_per_hour" value="<%= s.capacity_per_hour || 4 %>" min="1"></label>

@@ -1,0 +1,21 @@
+<%- include('../partials/head') %>
+<p><a href="/merchant">← Schedules</a></p>
+<h1><%= a.vendor_name %> at <%= a.store_name %></h1>
+<% if (!a.active) { %><p class="flash warning">This schedule is inactive.</p><% } %>
+<% const canEdit = ['merchant','admin'].includes(user.role); %>
+<section class="card">
+  <form method="post" action="/merchant/agreements/<%= a.id %>" class="form-grid">
+    <%- include('../partials/csrf') %>
+    <%- include('_agreementfields', { a: a }) %>
+    <% if (canEdit) { %><button class="btn primary">Save changes</button><% } %>
+  </form>
+  <% if (canEdit) { %>
+  <form method="post" action="/merchant/agreements/<%= a.id %>"><%- include('../partials/csrf') %>
+    <button class="btn <%= a.active ? 'danger' : '' %>" name="action" value="<%= a.active ? 'deactivate' : 'activate' %>"><%= a.active ? 'Deactivate schedule' : 'Reactivate schedule' %></button></form>
+  <% } %>
+</section>
+<section class="card"><h2>Expected visits</h2>
+<table class="table compact"><thead><tr><th>Date</th><th>Window</th><th>Status</th></tr></thead><tbody>
+<% upcoming.forEach(function(e) { %><tr><td><%= fmtDate(e.visit_date) %></td><td><%= fmtClock(e.window_start) %>–<%= fmtClock(e.window_end) %></td><td><span class="pill <%= e.status %>"><%= statusLabel(e.status) %></span></td></tr><% }) %>
+</tbody></table></section>
+<%- include('../partials/foot') %>

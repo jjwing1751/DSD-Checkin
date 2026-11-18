@@ -1,0 +1,24 @@
+<%- include('../partials/head') %>
+<p><a href="/admin/users">← Users</a></p>
+<h1><%= u.name || u.email %></h1>
+<p><span class="pill <%= u.status %>"><%= statusLabel(u.status) %></span> · <%= ROLES[u.role] %><%= u.company ? ' · ' + u.company : '' %></p>
+<% if (u.has_selfie) { %><div class="id-compare"><figure><img src="/files/user/<%= u.id %>/selfie" alt="Selfie"><figcaption>Selfie</figcaption></figure><% if (u.has_id_photo) { %><figure><img src="/files/user/<%= u.id %>/id-photo" alt="ID"><figcaption>ID</figcaption></figure><% } %></div><% } %>
+<section class="card">
+  <form method="post" action="/admin/users/<%= u.id %>" class="form-grid"><%- include('../partials/csrf') %>
+    <label>Email<input value="<%= u.email %>" disabled></label>
+    <label>Name<input name="name" value="<%= u.name || '' %>"></label>
+    <label>Phone<input name="phone" value="<%= u.phone || '' %>"></label>
+    <label>Role<select name="role"><% Object.keys(ROLES).filter(r => r !== 'admin' || user.role === 'admin').forEach(function(r) { %><option value="<%= r %>" <%= u.role === r ? 'selected' : '' %>><%= ROLES[r] %></option><% }) %></select></label>
+    <label>Store<select name="store_id"><option value="">None</option><% stores.forEach(function(s) { %><option value="<%= s.id %>" <%= u.store_id === s.id ? 'selected' : '' %>>#<%= s.store_number %> <%= s.name %></option><% }) %></select></label>
+    <% if (u.vendor_company_id) { %><label class="check"><input type="checkbox" name="is_vendor_admin" <%= u.is_vendor_admin ? 'checked' : '' %>> Company admin</label><% } %>
+    <button class="btn primary">Save</button>
+  </form>
+  <form method="post" action="/admin/users/<%= u.id %>" class="btn-row"><%- include('../partials/csrf') %>
+    <% if (u.status === 'active' || u.status === 'pending_identity' || u.status === 'identity_review') { %><button class="btn warn" name="action" value="suspended">Suspend</button><% } else { %><button class="btn" name="action" value="active">Reactivate</button><% } %>
+    <button class="btn danger" name="action" value="removed">Remove</button>
+    <% if (!['rep','field_service','visitor'].includes(u.role)) { %><button class="btn" name="action" value="reset_password">Reset password</button><% } %>
+  </form>
+</section>
+<section class="card"><h2>Recent visits</h2>
+<ul class="list"><% visits.forEach(function(v) { %><li><a href="/store/<%= v.store_id %>/visits/<%= v.id %>"><%= v.store_name %></a> · <%= fmtDateTime(v.requested_at, v.timezone) %> · <%= statusLabel(v.status) %></li><% }) %></ul></section>
+<%- include('../partials/foot') %>

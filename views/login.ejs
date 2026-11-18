@@ -1,0 +1,38 @@
+<%- include('partials/head') %>
+<section class="card narrow">
+<% if (step === 'email') { %>
+  <h1>Sign in</h1>
+  <p class="muted">Vendor and field service reps: use your company email. We'll send a code. New here? This also creates your account.</p>
+  <% if (error) { %><p class="error"><%= error %></p><% } %>
+  <form method="post" action="/login/code">
+    <%- include('partials/csrf') %>
+    <input type="hidden" name="next" value="<%= next %>">
+    <label>Email<input type="email" name="email" value="<%= email %>" autocomplete="email" inputmode="email" required autofocus></label>
+    <button class="btn primary block">Continue</button>
+  </form>
+<% } else if (step === 'code') { %>
+  <h1>Check your email</h1>
+  <p>We sent a 6-digit code to <strong><%= email %></strong>.</p>
+  <% if (devCode) { %><p class="flash warning">Email is not configured on this server. Your code is <strong><%= devCode %></strong>.</p><% } %>
+  <% if (error) { %><p class="error"><%= error %></p><% } %>
+  <form method="post" action="/login/verify">
+    <%- include('partials/csrf') %>
+    <input type="hidden" name="next" value="<%= next %>">
+    <label>Code<input name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required autofocus></label>
+    <button class="btn primary block">Sign in</button>
+  </form>
+  <p><a href="/login">Use a different email</a></p>
+<% } else { %>
+  <h1>Staff sign in</h1>
+  <% if (error) { %><p class="error"><%= error %></p><% } %>
+  <form method="post" action="/login/password">
+    <%- include('partials/csrf') %>
+    <input type="hidden" name="next" value="<%= next %>">
+    <label>Email<input type="email" name="email" value="<%= email %>" autocomplete="username" required></label>
+    <label>Password<input type="password" name="password" autocomplete="current-password" required autofocus></label>
+    <button class="btn primary block">Sign in</button>
+  </form>
+  <p><a href="/login">Back</a></p>
+<% } %>
+</section>
+<%- include('partials/foot') %>

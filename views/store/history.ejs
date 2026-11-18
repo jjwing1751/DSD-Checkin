@@ -1,0 +1,24 @@
+<%- include('../partials/head', { wide: true }) %>
+<p><a href="/store/<%= store.id %>">← <%= store.name %></a></p>
+<h1>Visit history</h1>
+<form class="filters" method="get">
+  <label>From<input type="date" name="from" value="<%= from %>"></label>
+  <label>To<input type="date" name="to" value="<%= to %>"></label>
+  <button class="btn">Show</button>
+  <button class="btn" name="format" value="csv">Download CSV</button>
+</form>
+<section class="card">
+<table class="table compact">
+<thead><tr><th>Date</th><th>Person</th><th>Company</th><th>Type</th><th>In</th><th>Out</th><th>Dwell</th><th>Status</th><th>Flags</th></tr></thead>
+<tbody>
+<% rows.forEach(function(v) { %>
+<tr><td><%= fmtDateTime(v.requested_at, store.timezone) %></td><td><a href="/store/<%= store.id %>/visits/<%= v.id %>"><%= v.rep_name %></a></td><td><%= v.company_name || '' %></td>
+<td><%= VISIT_TYPES[v.visit_type] %></td><td><%= fmtTime(v.check_in_at, store.timezone) %></td><td><%= fmtTime(v.check_out_at, store.timezone) %></td>
+<td><%= v.status === 'checked_out' ? dwell(minutesBetween(v.check_in_at, v.check_out_at)) : '' %></td>
+<td><span class="pill <%= v.status %>"><%= statusLabel(v.status) %></span></td>
+<td class="small"><%= [].concat(v.hard_failures, v.soft_failures).join('; ') %><%= v.override_reason ? ' · override' : '' %><%= v.discrepancy ? ' · discrepancy' : '' %></td></tr>
+<% }) %>
+</tbody></table>
+<% if (!rows.length) { %><p class="muted">No visits in this range.</p><% } %>
+</section>
+<%- include('../partials/foot') %>
