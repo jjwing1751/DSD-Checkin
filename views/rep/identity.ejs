@@ -1,0 +1,17 @@
+<%- include('../partials/head') %>
+<section class="card narrow">
+  <h1>Verify your identity</h1>
+  <% if (user.status === 'active') { %>
+    <p class="flash success">Your identity is verified. Submitting new photos sends you back to review, and you can't check in until it's approved.</p>
+  <% } else if (user.status === 'identity_review') { %>
+    <p class="flash info">Your photos are in review. You can replace them below if needed.</p>
+  <% } %>
+  <p>Take a clear photo of your government-issued ID, then a selfie. Receivers will see your selfie at check-in. Your ID image is only visible to DSD ops.</p>
+  <form method="post" action="/rep/identity" enctype="multipart/form-data" class="stack">
+    <%- include('../partials/csrf') %>
+    <label>Photo of your ID<input type="file" name="id_photo" accept="image/*" capture="environment" required></label>
+    <label>Selfie<input type="file" name="selfie" accept="image/*" capture="user" required></label>
+    <button class="btn primary block">Submit for verification</button>
+  </form>
+</section>
+<%- include('../partials/foot') %>

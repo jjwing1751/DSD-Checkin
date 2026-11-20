@@ -1,0 +1,14 @@
+<%- include('../partials/head', { wide: true }) %>
+<h1>Stores setup</h1>
+<details class="card"><summary><strong>+ Add a store</strong></summary>
+  <form method="post" action="/admin/stores" class="form-grid"><%- include('../partials/csrf') %><%- include('_storefields', { s: {} }) %><button class="btn primary">Add store</button></form>
+</details>
+<section class="card">
+<table class="table compact"><thead><tr><th>#</th><th>Name</th><th>Region</th><th>Receiving</th><th>Geofence</th><th>Status</th><th></th></tr></thead><tbody>
+<% stores.forEach(function(s) { %>
+<tr class="<%= s.active ? '' : 'struck' %>"><td><%= s.store_number %></td><td><%= s.name %></td><td><%= s.region || '' %></td><td><%= fmtClock(s.receiving_open) %>–<%= fmtClock(s.receiving_close) %></td>
+<td><%= s.lat == null ? 'not set' : s.geofence_m + ' m' %></td><td><%= s.active ? 'Active' : 'Inactive' %></td>
+<td><a href="/admin/stores/<%= s.id %>">Edit</a> · <a href="/admin/stores/<%= s.id %>/poster">QR poster</a> · <a href="/store/<%= s.id %>">Dashboard</a></td></tr>
+<% }) %>
+</tbody></table></section>
+<%- include('../partials/foot') %>

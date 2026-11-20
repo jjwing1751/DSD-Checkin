@@ -1,0 +1,33 @@
+<%- include('../partials/head', { wide: true }) %>
+<h1>Agreed service schedules</h1>
+<p class="muted">Owned by the merchant team. Each schedule generates expected visits for the next 14 days; stores see them on their arrivals board.</p>
+<form class="filters" method="get">
+  <label>Vendor<select name="vendor"><option value="">All</option><% vendors.forEach(function(v) { %><option value="<%= v.id %>" <%= vendorId === v.id ? 'selected' : '' %>><%= v.name %></option><% }) %></select></label>
+  <label>Store<select name="store"><option value="">All</option><% stores.forEach(function(s) { %><option value="<%= s.id %>" <%= storeId === s.id ? 'selected' : '' %>>#<%= s.store_number %> <%= s.name %></option><% }) %></select></label>
+  <button class="btn">Filter</button>
+</form>
+<% if (['merchant','admin'].includes(user.role)) { %>
+<details class="card" <%= agreements.length ? '' : 'open' %>>
+  <summary><strong>+ New schedule</strong></summary>
+  <form method="post" action="/merchant/agreements" class="form-grid">
+    <%- include('../partials/csrf') %>
+    <label>Vendor<select name="vendor_company_id" required><option value="">Choose…</option><% vendors.forEach(function(v) { %><option value="<%= v.id %>" <%= vendorId === v.id ? 'selected' : '' %>><%= v.name %><%= v.status !== 'active' ? ' (' + v.status + ')' : '' %></option><% }) %></select></label>
+    <label>Stores (hold Ctrl/Cmd for several)<select name="store_ids" multiple size="6" required><% stores.forEach(function(s) { %><option value="<%= s.id %>">#<%= s.store_number %> <%= s.name %><%= s.region ? ' · ' + s.region : '' %></option><% }) %></select></label>
+    <%- include('_agreementfields', { a: {} }) %>
+    <button class="btn primary">Save schedule</button>
+  </form>
+</details>
+<% } %>
+<section class="card">
+<table class="table compact">
+<thead><tr><th>Vendor</th><th>Store</th><th>Type</th><th>Days</th><th>Window</th><th>Dwell</th><th>Effective</th><th></th></tr></thead>
+<tbody>
+<% agreements.forEach(function(a) { %>
+<tr class="<%= a.active ? '' : 'struck' %>"><td><%= a.vendor_name %></td><td>#<%= a.store_number %> <%= a.store_name %></td><td><%= VISIT_TYPES[a.visit_type] %><%= a.category ? ' · ' + a.category : '' %></td>
+<td><%= a.days_of_week.map(d => DAYS[d]).join(' ') %></td><td><%= fmtClock(a.window_start) %>–<%= fmtClock(a.window_end) %></td><td><%= a.expected_dwell_min %>m</td>
+<td class="small"><%= a.effective_from %><%= a.effective_to ? ' → ' + a.effective_to : '' %></td><td><a href="/merchant/agreements/<%= a.id %>">Edit</a></td></tr>
+<% }) %>
+</tbody></table>
+<% if (!agreements.length) { %><p class="muted">No schedules yet.</p><% } %>
+</section>
+<%- include('../partials/foot') %>

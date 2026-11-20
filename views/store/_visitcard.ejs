@@ -1,0 +1,11 @@
+<div class="visit-card">
+  <% if (v.has_selfie) { %><img class="face" src="/files/user/<%= v.user_id %>/selfie" alt="Photo of <%= v.rep_name %>"><% } else { %><div class="face blank">?</div><% } %>
+  <div class="visit-info">
+    <strong><%= v.rep_name || v.rep_email %></strong> <span class="muted"><%= ROLES[v.rep_role] %></span><br>
+    <%= v.company_name || 'Visitor' %> · <%= VISIT_TYPES[v.visit_type] %><%= v.source === 'unscheduled' ? ' · unscheduled' : '' %><br>
+    <% if (v.purpose) { %><span class="muted"><%= v.purpose %></span><br><% } %>
+    <% if (v.check_in_at) { %>In <%= fmtTime(v.check_in_at, store.timezone) %> (<%= dwell(minutesBetween(v.check_in_at)) %>)<% if (v.expected_out_at) { %> · expected out <%= fmtTime(v.expected_out_at, store.timezone) %><% } %><% } else { %>Arrived <%= fmtTime(v.requested_at, store.timezone) %><% } %>
+    <% if (v.override_reason) { %><br><span class="pill warn">Override: <%= v.override_reason %></span><% } %>
+    <% if (v.insurance_status && v.insurance_status.override && v.insurance_status.override.scope === 'company') { %><br><span class="pill warn">Company insurance override until <%= fmtDateTime(v.insurance_status.override.expires_at, store.timezone) %></span><% } %>
+  </div>
+</div>

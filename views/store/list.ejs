@@ -1,0 +1,14 @@
+<%- include('../partials/head') %>
+<h1>Stores</h1>
+<section class="card">
+<table class="table">
+<thead><tr><th>Store</th><th>Region</th><th>In store</th><th>Waiting</th><th>Expected today</th></tr></thead>
+<tbody>
+<% stores.forEach(function(s) { %>
+<tr><td><a href="/store/<%= s.id %>">#<%= s.store_number %> <%= s.name %></a></td><td><%= s.region || '' %></td>
+<td><%= s.in_store %></td><td><%= s.waiting ? s.waiting : '' %></td><td><%= s.expected_today %></td></tr>
+<% }) %>
+</tbody></table>
+<% if (!stores.length) { %><p class="muted">No stores yet.</p><% } %>
+</section>
+<%- include('../partials/foot') %>

@@ -1,0 +1,11 @@
+<label>Visit type<select name="visit_type"><% Object.keys(VISIT_TYPES).forEach(function(k) { %><option value="<%= k %>" <%= a.visit_type === k ? 'selected' : '' %>><%= VISIT_TYPES[k] %></option><% }) %></select></label>
+<label>Category<input name="category" value="<%= a.category || '' %>" placeholder="e.g. salty snacks"></label>
+<fieldset class="days"><legend>Days</legend>
+  <% DAYS.forEach(function(d, i) { %><label class="check"><input type="checkbox" name="days" value="<%= i %>" <%= (a.days_of_week || []).includes(i) ? 'checked' : '' %>> <%= d %></label><% }) %>
+</fieldset>
+<label>Window start<input type="time" name="window_start" value="<%= a.window_start ? String(a.window_start).slice(0,5) : '07:00' %>" required></label>
+<label>Window end<input type="time" name="window_end" value="<%= a.window_end ? String(a.window_end).slice(0,5) : '10:00' %>" required></label>
+<label>Expected minutes in store<input type="number" name="expected_dwell_min" min="5" value="<%= a.expected_dwell_min || 45 %>"></label>
+<label>Minimum visits per week<input type="number" name="min_visits_per_week" min="0" value="<%= a.min_visits_per_week || '' %>" placeholder="defaults to days chosen"></label>
+<label>Effective from<input type="date" name="effective_from" value="<%= a.effective_from || '' %>"></label>
+<label>Effective to<input type="date" name="effective_to" value="<%= a.effective_to || '' %>"></label>

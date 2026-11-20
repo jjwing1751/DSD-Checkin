@@ -1,0 +1,19 @@
+<%- include('../partials/head', { wide: true }) %>
+<h1>Identity review</h1>
+<p class="muted">Compare the ID photo with the selfie and the name entered. Approved selfies become the photo receivers see at check-in.</p>
+<% if (!people.length) { %><p class="flash success">Nothing waiting.</p><% } %>
+<% people.forEach(function(p) { %>
+<section class="card">
+  <div class="row-between"><div><strong><%= p.name %></strong> · <%= p.email %> · <%= p.phone || '' %><br><%= ROLES[p.role] %> · <%= p.company || 'no company' %> <% if (p.company_status && p.company_status !== 'active') { %><span class="pill warn">company <%= p.company_status %></span><% } %></div>
+  <span class="muted small">Submitted <%= fmtDateTime(p.identity_submitted_at) %></span></div>
+  <div class="id-compare">
+    <figure><img src="/files/user/<%= p.id %>/id-photo" alt="ID photo"><figcaption>Government ID</figcaption></figure>
+    <figure><img src="/files/user/<%= p.id %>/selfie" alt="Selfie"><figcaption>Selfie</figcaption></figure>
+  </div>
+  <form method="post" action="/admin/users/<%= p.id %>/identity" class="inline-form"><%- include('../partials/csrf') %>
+    <button class="btn primary" name="action" value="approve">Approve</button>
+    <input name="reason" placeholder="Reason if rejecting (sent to the rep)"><button class="btn danger" name="action" value="reject">Reject</button>
+  </form>
+</section>
+<% }) %>
+<%- include('../partials/foot') %>

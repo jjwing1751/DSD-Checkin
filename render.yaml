@@ -1,0 +1,48 @@
+# Render Blueprint: one web service + one managed Postgres database.
+# In Render: New > Blueprint > pick this repo. Fill in the "sync: false" values when prompted.
+services:
+  - type: web
+    name: dsd-checkin
+    runtime: node
+    plan: starter
+    region: ohio
+    buildCommand: npm ci --omit=dev
+    startCommand: npm start
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: dsd-checkin-db
+          property: connectionString
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: PUBLIC_URL
+        sync: false
+      # Email for sign-in codes and alerts (any SMTP provider, e.g. SendGrid, Postmark, SES).
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: MAIL_FROM
+        sync: false
+      # Pilot only: show sign-in codes on screen when SMTP is not set up yet. Remove once email works.
+      - key: DEV_SHOW_CODES
+        value: "false"
+
+databases:
+  - name: dsd-checkin-db
+    plan: basic-256mb
+    region: ohio
+    databaseName: dsd_checkin
+    user: dsd_checkin

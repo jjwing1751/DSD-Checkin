@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14532d">
+<title><%= typeof title !== 'undefined' ? title + ' · ' : '' %>Store Check-in</title>
+<link rel="stylesheet" href="/css/app.css">
+<% if (typeof refresh !== 'undefined' && refresh) { %><meta http-equiv="refresh" content="8"><% } %>
+</head>
+<body<% if (typeof autoRefresh !== 'undefined' && autoRefresh) { %> data-autorefresh="30"<% } %>>
+<header class="topbar">
+  <a class="brand" href="/">Store Check-in</a>
+  <% if (user) { %>
+  <details class="menu">
+    <summary aria-label="Menu">Menu</summary>
+    <nav>
+      <% if (['rep','field_service','visitor'].includes(user.role)) { %>
+        <a href="/rep">My visits</a>
+        <a href="/rep/announce">Announce a visit</a>
+        <a href="/rep/credentials">My credentials</a>
+        <a href="/rep/visits">History</a>
+        <% if (user.is_vendor_admin) { %><a href="/company">My company</a><% } %>
+      <% } else if (['receiver','store_manager'].includes(user.role)) { %>
+        <% if (user.store_id) { %>
+        <a href="/store/<%= user.store_id %>">Dashboard</a>
+        <a href="/store/<%= user.store_id %>/history">History</a>
+        <a href="/store/<%= user.store_id %>/roster">Evacuation roster</a>
+        <% } %>
+      <% } else { %>
+        <% if (['dsd_ops','admin'].includes(user.role)) { %><a href="/admin">Admin home</a><% } %>
+        <a href="/stores">Store dashboards</a>
+        <a href="/merchant">Service schedules</a>
+        <a href="/merchant/compliance">Vendor compliance</a>
+        <% if (['dsd_ops','admin'].includes(user.role)) { %>
+        <a href="/admin/vendors">Vendors</a>
+        <a href="/admin/identity">Identity review</a>
+        <a href="/admin/insurance">Insurance</a>
+        <a href="/admin/credentials">Credentials</a>
+        <a href="/admin/stores">Stores setup</a>
+        <a href="/admin/users">Users</a>
+        <a href="/admin/audit">Audit trail</a>
+        <a href="/admin/settings">Settings</a>
+        <% } %>
+      <% } %>
+      <form method="post" action="/logout"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="linkish">Sign out (<%= user.email %>)</button></form>
+    </nav>
+  </details>
+  <% } %>
+</header>
+<main class="<%= typeof wide !== 'undefined' && wide ? 'wide' : '' %>">
+<% if (flash) { %><div class="flash <%= flash.type %>" role="status"><%= flash.message %></div><% } %>

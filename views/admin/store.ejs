@@ -1,0 +1,19 @@
+<%- include('../partials/head') %>
+<p><a href="/admin/stores">← Stores</a></p>
+<h1>#<%= s.store_number %> <%= s.name %></h1>
+<div class="btn-row"><a class="btn primary" href="/admin/stores/<%= s.id %>/poster">Print backdoor QR poster</a><a class="btn" href="/store/<%= s.id %>">Open dashboard</a></div>
+<section class="card">
+  <form method="post" action="/admin/stores/<%= s.id %>" class="form-grid"><%- include('../partials/csrf') %><%- include('_storefields', { s: s }) %><button class="btn primary">Save</button></form>
+  <p class="muted small">Tip: stand at the backdoor, open Google Maps, long-press your location and copy the coordinates.</p>
+</section>
+<section class="card"><h2>Store staff</h2>
+  <ul class="list"><% staff.forEach(function(u) { %><li><a href="/admin/users/<%= u.id %>"><%= u.name || u.email %></a> · <%= ROLES[u.role] %> · <%= statusLabel(u.status) %></li><% }) %></ul>
+  <a class="btn small" href="/admin/users">Add staff</a>
+</section>
+<section class="card"><h2>Danger zone</h2>
+  <form method="post" action="/admin/stores/<%= s.id %>" class="btn-row"><%- include('../partials/csrf') %>
+    <button class="btn warn" name="action" value="rotate_qr">Replace QR code</button>
+    <button class="btn danger" name="action" value="toggle"><%= s.active ? 'Deactivate store' : 'Reactivate store' %></button>
+  </form>
+</section>
+<%- include('../partials/foot') %>

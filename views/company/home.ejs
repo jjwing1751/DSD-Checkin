@@ -1,0 +1,80 @@
+<%- include('../partials/head') %>
+<h1><%= company.name %></h1>
+<p><span class="pill <%= company.status %>"><%= statusLabel(company.status) %></span> · Domains: <%= company.email_domains.join(', ') %></p>
+
+<section class="card <%= insurance.compliant ? '' : 'attention' %>">
+  <h2>Insurance status</h2>
+  <% if (!insurance.requirements.length) { %><p class="muted">No insurance requirements are configured yet.</p><% } %>
+  <ul class="list">
+  <% insurance.requirements.forEach(function(r) { %><li class="row-between"><span><%= r.coverage_type %><%= r.reason ? ' · ' + r.reason : '' %></span><span class="pill <%= r.ok ? 'verified' : 'rejected' %>"><%= r.ok ? 'OK' : 'Missing' %></span></li><% }) %>
+  </ul>
+  <% if (insurance.override) { %><p class="flash info">Temporary override until <%= fmtDateTime(insurance.override.expires_at) %>: <%= insurance.override.reason %></p><% } %>
+</section>
+
+<section class="card">
+  <h2>Certificates of insurance</h2>
+  <table class="table compact"><thead><tr><th>Coverage</th><th>Policy</th><th>Limits</th><th>Dates</th><th>Status</th></tr></thead><tbody>
+  <% policies.forEach(function(p) { %>
+    <tr><td><%= p.coverage_type %></td><td><%= p.carrier || '' %> <%= p.policy_number || '' %><% if (p.has_doc) { %> · <a href="/files/policy/<%= p.id %>">COI</a><% } %></td>
+    <td><%= money(p.per_occurrence) %> / <%= money(p.aggregate) %><%= p.additional_insured ? ' · AI' : '' %></td>
+    <td><%= p.effective_date %> → <%= p.expiry_date %></td><td><span class="pill <%= p.status %>"><%= statusLabel(p.status) %></span><%= p.reject_reason ? ' ' + p.reject_reason : '' %></td></tr>
+  <% }) %>
+  </tbody></table>
+  <details><summary class="btn">Upload a certificate</summary>
+  <form method="post" action="/company/policies" enctype="multipart/form-data" class="form-grid">
+    <%- include('../partials/csrf') %>
+    <label>Coverage<select name="coverage_type" required>
+      <% const covs = Array.from(new Set(COVERAGE_TYPES.concat(requirements.map(r => r.coverage_type)))); covs.forEach(function(c) { %><option><%= c %></option><% }) %>
+    </select></label>
+    <label>Carrier<input name="carrier"></label>
+    <label>Policy number<input name="policy_number"></label>
+    <label>Per occurrence limit ($)<input name="per_occurrence" inputmode="numeric"></label>
+    <label>Aggregate limit ($)<input name="aggregate" inputmode="numeric"></label>
+    <label class="check"><input type="checkbox" name="additional_insured"> Retailer named as additional insured</label>
+    <label>Effective date<input type="date" name="effective_date" required></label>
+    <label>Expiry date<input type="date" name="expiry_date" required></label>
+    <label>Certificate (PDF or photo)<input type="file" name="doc" accept="application/pdf,image/*" required></label>
+    <button class="btn primary">Submit for verification</button>
+  </form></details>
+</section>
+
+<% if (companyCredTypes.length) { %>
+<section class="card">
+  <h2>Company credentials</h2>
+  <ul class="list"><% companyCreds.forEach(function(c) { %><li class="row-between"><span><%= c.name %><%= c.expires_on ? ' · expires ' + fmtDate(c.expires_on) : '' %></span><span class="pill <%= c.status %>"><%= statusLabel(c.status) %></span></li><% }) %></ul>
+  <details><summary class="btn">Add</summary>
+  <form method="post" action="/company/credentials" enctype="multipart/form-data" class="form-grid">
+    <%- include('../partials/csrf') %>
+    <label>Credential<select name="credential_type_id"><% companyCredTypes.forEach(function(t) { %><option value="<%= t.id %>"><%= t.name %></option><% }) %></select></label>
+    <label>Issuer<input name="issuer"></label><label>Number<input name="number"></label>
+    <label>Issued<input type="date" name="issued_on"></label><label>Expires<input type="date" name="expires_on"></label>
+    <label>Document<input type="file" name="doc" accept="application/pdf,image/*"></label>
+    <button class="btn primary">Submit</button>
+  </form></details>
+</section>
+<% } %>
+
+<section class="card">
+  <h2>Reps (<%= reps.length %>)</h2>
+  <table class="table compact"><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th></th></tr></thead><tbody>
+  <% reps.forEach(function(r) { %>
+    <tr><td><%= r.name %><%= r.is_vendor_admin ? ' (admin)' : '' %></td><td><%= r.email %></td><td><%= ROLES[r.role] %></td><td><span class="pill <%= r.status %>"><%= statusLabel(r.status) %></span></td>
+    <td><% if (r.id !== user.id) { %><form method="post" action="/company/reps/<%= r.id %>/status" class="btn-row"><%- include('../partials/csrf') %>
+      <% if (['suspended','removed'].includes(r.status)) { %><button class="btn small" name="action" value="reinstate">Reinstate</button><% } else { %>
+      <button class="btn small" name="action" value="suspend">Suspend</button><button class="btn small danger" name="action" value="remove">Remove</button><% } %>
+      <% if (!r.is_vendor_admin) { %><button class="btn small" name="action" value="make_admin">Make admin</button><% } %>
+    </form><% } %></td></tr>
+  <% }) %>
+  </tbody></table>
+  <p class="muted small">New reps join themselves by signing in with an @<%= company.email_domains[0] %> address.</p>
+</section>
+
+<section class="card">
+  <h2>Missed visits (last 30 days)</h2>
+  <% if (!missed.length) { %><p class="muted">None.</p><% } %>
+  <ul class="list"><% missed.forEach(function(e) { %><li><%= fmtDate(e.visit_date) %> · <%= e.store_name %> · <%= fmtClock(e.window_start) %>–<%= fmtClock(e.window_end) %></li><% }) %></ul>
+</section>
+<% if (companyAlerts.length) { %>
+<section class="card"><h2>Notices</h2><ul class="list"><% companyAlerts.forEach(function(a) { %><li class="alert-<%= a.severity %>"><%= a.message %> <span class="muted small"><%= fmtDateTime(a.created_at) %></span></li><% }) %></ul></section>
+<% } %>
+<%- include('../partials/foot') %>

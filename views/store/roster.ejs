@@ -1,0 +1,15 @@
+<%- include('../partials/printhead') %>
+<div class="print-page">
+<div class="no-print btn-row"><a class="btn" href="/store/<%= store.id %>">← Back</a><button class="btn primary" data-print>Print</button></div>
+<h1>Evacuation roster</h1>
+<p><strong><%= store.name %></strong> (#<%= store.store_number %>) · <%= fmtDateTime(new Date(), store.timezone) %> · <%= inStore.length %> people</p>
+<table class="table roster">
+<thead><tr><th>✓</th><th>Name</th><th>Company</th><th>Phone</th><th>Purpose</th><th>In since</th></tr></thead>
+<tbody>
+<% inStore.forEach(function(v) { %>
+<tr><td class="box">☐</td><td><%= v.rep_name %></td><td><%= v.company_name || 'Visitor' %></td><td><%= v.rep_phone || '' %></td><td><%= VISIT_TYPES[v.visit_type] %></td><td><%= fmtTime(v.check_in_at, store.timezone) %></td></tr>
+<% }) %>
+</tbody></table>
+</div>
+<script src="/js/app.js"></script>
+</body></html>

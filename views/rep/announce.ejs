@@ -1,0 +1,20 @@
+<%- include('../partials/head') %>
+<section class="card narrow">
+  <h1>Announce a visit</h1>
+  <p class="muted">Let the store know you're coming so receiving can plan.</p>
+  <form method="post" action="/rep/announce" class="stack">
+    <%- include('../partials/csrf') %>
+    <label>Store<select name="store_id" required><option value="">Choose…</option>
+      <% stores.forEach(function(s) { %><option value="<%= s.id %>">#<%= s.store_number %> <%= s.name %></option><% }) %>
+    </select></label>
+    <label>Visit type<select name="visit_type">
+      <% Object.keys(VISIT_TYPES).forEach(function(k) { %><option value="<%= k %>" <%= (user.role === 'field_service' ? k === 'field_service' : k === 'delivery') ? 'selected' : '' %>><%= VISIT_TYPES[k] %></option><% }) %>
+    </select></label>
+    <label>Date<input type="date" name="date" required></label>
+    <label>Arrival time<input type="time" name="eta" required></label>
+    <label>Expected minutes in store<input type="number" name="dwell" value="45" min="5" max="600"></label>
+    <label>Planned work<input name="planned_work" placeholder="e.g. 60 cases, pull-ups, cooler repair WO#123"></label>
+    <button class="btn primary block">Announce</button>
+  </form>
+</section>
+<%- include('../partials/foot') %>
