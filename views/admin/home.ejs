@@ -1,5 +1,6 @@
 <%- include('../partials/head', { wide: true }) %>
 <h1>DSD ops</h1>
+<% if (!mailEnabled) { %><div class="flash warning"><strong>Email isn't set up.</strong> Vendor sign-in codes are shown on screen instead of emailed, so anyone can sign in as any rep. That's fine for testing; add the SMTP settings in Render before real reps use the app.</div><% } %>
 <div class="stats">
   <a class="stat" href="/admin/identity"><span><%= counts.identity %></span>Identity reviews</a>
   <a class="stat" href="/admin/insurance"><span><%= counts.policies %></span>COIs to verify</a>

@@ -30,7 +30,7 @@ Not in v1 (spec phases "Scale" / "Integrate" or open questions): SSO for staff, 
 1. In Render: **New > Blueprint**, pick this repository. `render.yaml` creates the web service and a Postgres database.
 2. When prompted, set:
    * `ADMIN_EMAIL`, `ADMIN_PASSWORD`: the first administrator, created on first start.
-   * `SMTP_HOST`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM`: any SMTP provider (SendGrid and Postmark both have free tiers). Vendor reps sign in with a code sent by email, so this is needed before real reps use it. For testing without email, set `DEV_SHOW_CODES=true` to show the code on screen (anyone could then sign in as any rep, so turn it off for real use). Staff and admins sign in with a password and don't need email.
+   * `SMTP_HOST`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM`: any SMTP provider (SendGrid and Postmark both have free tiers). Vendor reps sign in with a code sent by email, so this is needed before real reps use it. Until SMTP is set, the code is shown on screen instead (test mode; anyone could sign in as any rep, and the admin home page shows a warning). Staff and admins sign in with a password and don't need email.
    * `PUBLIC_URL` is optional. QR posters use the URL Render assigns (`RENDER_EXTERNAL_URL`). Set it only if you add a custom domain, and before printing posters.
 3. Open the Render URL, go to `/login`, enter `ADMIN_EMAIL`, click Continue, then enter `ADMIN_PASSWORD`.
 4. As admin: add stores (with backdoor latitude/longitude), print each store's QR poster, add staff, add insurance requirements and credentials, add vendor companies with their email domains, and have the merchant team load schedules.
