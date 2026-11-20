@@ -84,6 +84,9 @@ before(async () => {
   await migrate();
   execFileSync(process.execPath, [path.join(__dirname, '..', 'scripts', 'seed-demo.js')], { env: { ...process.env }, stdio: 'ignore' });
   await db.q(`INSERT INTO users(email, name, role, password_hash, status) SELECT 'admin@demo.example', 'Admin', 'admin', password_hash, 'active' FROM users WHERE email = 'ops@demo.example'`);
+  // Make every demo schedule daily so the tests don't depend on the weekday they run.
+  await db.q(`UPDATE service_agreements SET days_of_week = '{0,1,2,3,4,5,6}'`);
+  await jobs.generateExpectedVisits();
   const app = createApp();
   await new Promise((resolve) => { server = app.listen(0, resolve); });
   base = `http://127.0.0.1:${server.address().port}`;
@@ -128,7 +131,7 @@ test('verified rep checks in by QR at the store, receiver acknowledges, rep chec
   assert.match(roster.text, /Pat Driver/);
 
   await c.get(`/visit/${v.id}`);
-  const out = await c.post(`/visit/${v.id}/checkout`, { work: ['delivery', 'pull_up'], qty_delivery: '40', notes: 'All good', photos: png() }, { multipart: true });
+  const out = await c.post(`/visit/${v.id}/checkout`, { work: ['delivery', 'pull_up'], notes: 'All good', photos: png() }, { multipart: true });
   assert.equal(out.status, 302, out.text.slice(0, 300));
   const done = await db.one('SELECT status FROM visits WHERE id = $1', [v.id]);
   assert.equal(done.status, 'checked_out');

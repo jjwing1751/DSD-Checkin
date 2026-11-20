@@ -29,8 +29,7 @@
     <%- include('../partials/csrf') %>
     <fieldset><legend>Work done</legend>
       <% Object.keys(WORK_TYPES).forEach(function(k) { %>
-        <div class="work-row"><label class="check"><input type="checkbox" name="work" value="<%= k %>"> <%= WORK_TYPES[k] %></label>
-        <input type="number" name="qty_<%= k %>" min="0" placeholder="qty" aria-label="Quantity for <%= WORK_TYPES[k] %>"></div>
+        <label class="check"><input type="checkbox" name="work" value="<%= k %>"> <%= WORK_TYPES[k] %></label>
       <% }) %>
     </fieldset>
     <label>Notes<textarea name="notes" rows="2" maxlength="1000"></textarea></label>
@@ -40,7 +39,7 @@
 </section>
 <% } %>
 <% if (work.length) { %>
-<section class="card"><h2>Work recorded</h2><ul><% work.forEach(function(w) { %><li><%= WORK_TYPES[w.type] || w.type %><%= w.quantity ? ' × ' + w.quantity : '' %></li><% }) %></ul></section>
+<section class="card"><h2>Work recorded</h2><ul><% work.forEach(function(w) { %><li><%= WORK_TYPES[w.type] || w.type %></li><% }) %></ul></section>
 <% } %>
 <p><a href="/rep">Back to my visits</a></p>
 <%- include('../partials/foot') %>

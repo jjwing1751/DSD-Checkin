@@ -22,7 +22,7 @@
 </section>
 <% if (work.length || photos.length) { %>
 <section class="card"><h2>Work proof</h2>
-  <ul><% work.forEach(function(w) { %><li><%= WORK_TYPES[w.type] || w.type %><%= w.quantity ? ' × ' + w.quantity : '' %></li><% }) %></ul>
+  <ul><% work.forEach(function(w) { %><li><%= WORK_TYPES[w.type] || w.type %></li><% }) %></ul>
   <div class="photos"><% photos.forEach(function(p) { %><a href="/files/visit-photo/<%= p.id %>"><img src="/files/visit-photo/<%= p.id %>" alt="Visit photo"></a><% }) %></div>
 </section>
 <% } %>

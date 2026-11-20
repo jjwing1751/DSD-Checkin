@@ -147,8 +147,7 @@ router.post('/visit/:id/checkout', repOnly, upload.images.array('photos', 4), ve
   const types = toArray(req.body.work).filter((t) => WORK_TYPES[t]);
   await db.tx(async (c) => {
     for (const t of types) {
-      const qty = Number(req.body[`qty_${t}`]);
-      await c.query('INSERT INTO work_items(visit_id, type, quantity) VALUES ($1,$2,$3)', [v.id, t, Number.isFinite(qty) && qty > 0 ? qty : null]);
+      await c.query('INSERT INTO work_items(visit_id, type) VALUES ($1,$2)', [v.id, t]);
     }
     for (const f of req.files || []) {
       await c.query('INSERT INTO visit_photos(visit_id, data, mime) VALUES ($1,$2,$3)', [v.id, f.buffer, f.mimetype]);
