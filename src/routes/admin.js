@@ -10,11 +10,13 @@ const { activeCompanyOverride, evaluateInsurance } = require('../checks');
 const { flash, intParam, httpError, toArray, csvList, numOrNull, toCsv } = require('../util');
 const { ROLES, VISIT_TYPES, COVERAGE_TYPES } = require('../constants');
 const { DEFAULT_WEIGHTS } = require('../metrics');
+const mail = require('../mail');
 
 const router = express.Router();
 const ops = requireRole('dsd_ops');
 const newToken = () => crypto.randomBytes(12).toString('base64url');
-const baseUrl = (req) => process.env.PUBLIC_URL || `${req.protocol}://${req.get('host')}`;
+// QR posters use PUBLIC_URL (e.g. a custom domain), else the URL Render assigns, else this request's host.
+const baseUrl = (req) => (process.env.PUBLIC_URL || process.env.RENDER_EXTERNAL_URL || `${req.protocol}://${req.get('host')}`).replace(/\/+$/, '');
 
 // ---------- Overview ----------
 router.get('/admin', ops, async (req, res) => {
@@ -29,7 +31,7 @@ router.get('/admin', ops, async (req, res) => {
       (SELECT count(*) FROM visits WHERE requested_at > now() - interval '24 hours')::int AS visits_24h`);
   const recentAlerts = await db.many(`SELECT a.*, s.name AS store_name FROM alerts a LEFT JOIN stores s ON s.id = a.store_id
       WHERE a.dismissed_at IS NULL AND ('dsd_ops' = ANY(a.audience)) ORDER BY a.created_at DESC LIMIT 25`);
-  res.render('admin/home', { title: 'Admin', counts, recentAlerts });
+  res.render('admin/home', { title: 'Admin', counts, recentAlerts, mailEnabled: mail.enabled() });
 });
 
 router.post('/admin/alerts/:id/dismiss', ops, async (req, res) => {

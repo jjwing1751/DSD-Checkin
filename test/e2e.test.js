@@ -11,7 +11,7 @@ if (!TEST_DB) {
 }
 process.env.DATABASE_URL = TEST_DB;
 process.env.DISABLE_JOBS = 'true';
-process.env.DEV_SHOW_CODES = 'true';
+process.env.DEV_SHOW_CODES = 'false'; // no SMTP in tests, so codes still show on screen
 process.env.LOGIN_RATE_LIMIT_PER_MIN = '10000';
 
 const db = require('../src/db');

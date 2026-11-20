@@ -13,7 +13,7 @@
 <% } else if (step === 'code') { %>
   <h1>Check your email</h1>
   <p>We sent a 6-digit code to <strong><%= email %></strong>.</p>
-  <% if (devCode) { %><p class="flash warning">Email is not configured on this server. Your code is <strong><%= devCode %></strong>.</p><% } %>
+  <% if (devCode) { %><p class="flash warning">Test mode: email isn't set up on this server, so your code is shown here instead of being emailed. Your code is <strong><%= devCode %></strong>.</p><% } %>
   <% if (error) { %><p class="error"><%= error %></p><% } %>
   <form method="post" action="/login/verify">
     <%- include('partials/csrf') %>

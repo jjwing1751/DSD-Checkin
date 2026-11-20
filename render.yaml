@@ -23,8 +23,7 @@ services:
         sync: false
       - key: ADMIN_PASSWORD
         sync: false
-      - key: PUBLIC_URL
-        sync: false
+      # PUBLIC_URL is optional: QR posters use Render's assigned URL unless you add a custom domain.
       # Email for sign-in codes and alerts (any SMTP provider, e.g. SendGrid, Postmark, SES).
       - key: SMTP_HOST
         sync: false
@@ -36,9 +35,7 @@ services:
         sync: false
       - key: MAIL_FROM
         sync: false
-      # Pilot only: show sign-in codes on screen when SMTP is not set up yet. Remove once email works.
-      - key: DEV_SHOW_CODES
-        value: "false"
+      # Until SMTP is set, sign-in codes are shown on screen (test mode). DEV_SHOW_CODES=true forces that even with SMTP.
 
 databases:
   - name: dsd-checkin-db

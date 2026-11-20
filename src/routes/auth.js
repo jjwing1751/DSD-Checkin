@@ -13,7 +13,9 @@ const { VENDOR_ROLES } = require('../constants');
 const router = express.Router();
 const limiter = rateLimit({ windowMs: 60 * 1000, limit: Number(process.env.LOGIN_RATE_LIMIT_PER_MIN || 30), standardHeaders: true, legacyHeaders: false });
 
-const showCodes = () => process.env.DEV_SHOW_CODES === 'true' || (!mail.enabled() && process.env.NODE_ENV !== 'production');
+// Until SMTP is configured the code can't be emailed, so it is shown on screen (with a warning).
+// DEV_SHOW_CODES=true also shows it when email is configured, for testing.
+const showCodes = () => !mail.enabled() || /^(true|1|yes|on)$/i.test(String(process.env.DEV_SHOW_CODES || '').trim());
 
 function safeNext(n) {
   return typeof n === 'string' && n.startsWith('/') && !n.startsWith('//') ? n : null;
