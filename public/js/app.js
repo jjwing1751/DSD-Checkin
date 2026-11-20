@@ -14,10 +14,10 @@
     }
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(set, function () {
-        status.textContent = 'Location is off. You can still check in, but the receiver will need to approve you.';
-      }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 });
+        status.textContent = 'Location is off. You can still check in; the visit will be noted.';
+      }, { enableHighAccuracy: true, timeout: 8000, maximumAge: 120000 });
     } else {
-      status.textContent = 'This phone cannot share location. The receiver will approve you.';
+      status.textContent = 'This phone cannot share location. You can still check in.';
     }
     form.addEventListener('submit', function (e) {
       btn.disabled = true;
@@ -26,8 +26,9 @@
         e.preventDefault();
         var done = false;
         var finish = function () { if (!done) { done = true; form.submit(); } };
-        navigator.geolocation.getCurrentPosition(function (p) { set(p); finish(); }, finish, { enableHighAccuracy: true, timeout: 6000 });
-        setTimeout(finish, 7000);
+        // Location was requested on page load; give it at most 2 more seconds, then check in anyway.
+        var t = setInterval(function () { if (got) { clearInterval(t); finish(); } }, 100);
+        setTimeout(function () { clearInterval(t); finish(); }, 2000);
       }
     });
   }

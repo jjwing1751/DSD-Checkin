@@ -1,10 +1,23 @@
 <%- include('../partials/head') %>
 <h1>Settings</h1>
+<section class="card">
+  <h2>Test data</h2>
+  <% if (hasDemo) { %>
+    <p>Test data is loaded: 8 stores (D101 to D302), 20 vendor companies, their reps, and 90 days of check-ins. Everything test is marked and can be removed in one step.</p>
+    <div class="btn-row">
+      <form method="post" action="/admin/demo"><%- include('../partials/csrf') %><input type="hidden" name="action" value="reload"><button class="btn">Reload with fresh dates</button></form>
+      <form method="post" action="/admin/demo"><%- include('../partials/csrf') %><input type="hidden" name="action" value="remove"><button class="btn danger">Remove test data</button></form>
+    </div>
+  <% } else { %>
+    <p>Load 8 test stores, 20 vendor companies with reps, and 90 days of check-ins so you can try the store screens and reports without creating anything by hand. You can remove it later.</p>
+    <form method="post" action="/admin/demo"><%- include('../partials/csrf') %><input type="hidden" name="action" value="load"><button class="btn primary">Load test data</button></form>
+  <% } %>
+</section>
 <form method="post" action="/admin/settings" class="card form-grid"><%- include('../partials/csrf') %>
   <label>Keep visit and audit records for (months)<input type="number" name="retention_months" min="1" value="<%= settings.retention_months %>"></label>
   <label>Overstay alert after expected out + (minutes)<input type="number" name="overstay_margin_min" min="0" value="<%= settings.overstay_margin_min %>"></label>
   <label>Max company insurance override (days)<input type="number" name="max_company_override_days" min="1" max="90" value="<%= settings.max_company_override_days %>"></label>
-  <label class="check"><input type="checkbox" name="require_location" <%= settings.require_location ? 'checked' : '' %>> Block check-in when the phone isn't inside the store geofence (otherwise the receiver can approve)</label>
+  <label class="check"><input type="checkbox" name="require_location" <%= settings.require_location ? 'checked' : '' %>> Block check-in when the phone isn't inside the store geofence (otherwise the visit is recorded with a warning)</label>
   <fieldset><legend>Service Score weights</legend>
     <label>Frequency<input type="number" name="w_frequency" value="<%= weights.frequency %>"></label>
     <label>On time<input type="number" name="w_on_time" value="<%= weights.on_time %>"></label>

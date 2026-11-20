@@ -39,7 +39,7 @@ router.get('/s/:token', requireLogin, async (req, res) => {
     return res.redirect(homePath(me));
   }
   const open = await db.one(
-    `SELECT id FROM visits WHERE user_id = $1 AND status IN ('pending_approval','blocked','checked_in') ORDER BY requested_at DESC LIMIT 1`, [me.id]);
+    `SELECT id FROM visits WHERE user_id = $1 AND status = 'checked_in' ORDER BY requested_at DESC LIMIT 1`, [me.id]);
   if (open) return res.redirect(`/visit/${open.id}`);
   if (me.status === 'pending_identity') {
     req.session.afterIdentity = req.originalUrl;
@@ -55,7 +55,7 @@ router.get('/s/:token', requireLogin, async (req, res) => {
 router.post('/s/:token/checkin', repOnly, async (req, res) => {
   const store = await storeByToken(req.params.token);
   const me = req.user;
-  const open = await db.one(`SELECT id FROM visits WHERE user_id = $1 AND status IN ('pending_approval','blocked','checked_in') LIMIT 1`, [me.id]);
+  const open = await db.one(`SELECT id FROM visits WHERE user_id = $1 AND status = 'checked_in' LIMIT 1`, [me.id]);
   if (open) return res.redirect(`/visit/${open.id}`);
 
   const company = me.vendor_company_id ? await db.one('SELECT * FROM vendor_companies WHERE id = $1', [me.vendor_company_id]) : null;
@@ -72,8 +72,8 @@ router.post('/s/:token/checkin', repOnly, async (req, res) => {
 
   const result = await evaluateCheckIn({ user: me, company, store, visitType, lat, lng, accuracy });
   let status;
+  // Hard failures block; soft issues (location, soft credentials) are recorded as warnings, never a wait.
   if (result.hard.length) status = 'blocked';
-  else if (result.soft.length) status = 'pending_approval';
   else status = 'checked_in';
 
   const dwellMin = (expected && expected.expected_dwell_min) || 60;
@@ -106,10 +106,10 @@ router.post('/s/:token/checkin', repOnly, async (req, res) => {
       audience: ['receiver', 'store_manager', 'dsd_ops'], message: `Check-in blocked at ${store.name}: ${who}. ${result.hard.join('; ')}`,
       dedupeKey: `block:${visit.id}`,
     });
-  } else if (status === 'pending_approval') {
+  } else if (result.soft.length) {
     await alerts.raise({
-      kind: 'approval_needed', severity: 'warning', storeId: store.id, vendorCompanyId: company && company.id, visitId: visit.id,
-      audience: ['receiver', 'store_manager'], message: `Approval needed at ${store.name}: ${who}. ${result.soft.join('; ')}`,
+      kind: 'checkin_warning', severity: 'info', storeId: store.id, vendorCompanyId: company && company.id, visitId: visit.id,
+      audience: ['store_manager', 'dsd_ops'], message: `Checked in with warnings at ${store.name}: ${who}. ${result.soft.join('; ')}`,
       dedupeKey: `soft:${visit.id}`,
     });
   }
@@ -129,12 +129,12 @@ async function ownVisit(req) {
 router.get('/visit/:id', repOnly, async (req, res) => {
   const v = await ownVisit(req);
   const work = await db.many('SELECT * FROM work_items WHERE visit_id = $1 ORDER BY id', [v.id]);
-  res.render('checkin/pass', { title: 'Visitor pass', v, work, refresh: ['pending_approval', 'blocked'].includes(v.status) });
+  res.render('checkin/pass', { title: 'Visitor pass', v, work });
 });
 
 router.post('/visit/:id/cancel', repOnly, async (req, res) => {
   const v = await ownVisit(req);
-  if (!['pending_approval', 'blocked'].includes(v.status)) throw httpError(400, 'This visit can no longer be cancelled');
+  if (v.status !== 'checked_in') throw httpError(400, 'This visit is already closed');
   await db.q(`UPDATE visits SET status = 'cancelled' WHERE id = $1`, [v.id]);
   await db.q(`UPDATE expected_visits SET visit_id = NULL WHERE visit_id = $1`, [v.id]);
   await audit(req, { action: 'visit.cancelled', entity: 'visit', entityId: v.id, storeId: v.store_id });

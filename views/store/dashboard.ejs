@@ -1,41 +1,8 @@
 <%- include('../partials/head', { wide: true }) %>
-<div class="row-between">
-  <div><p class="muted">#<%= store.store_number %> · receiving <%= fmtClock(store.receiving_open) %>–<%= fmtClock(store.receiving_close) %></p><h1><%= store.name %></h1></div>
+<div class="page-head">
+  <div><h1>#<%= store.store_number %> <%= store.name %></h1><div class="sub">Receiving <%= fmtClock(store.receiving_open) %>–<%= fmtClock(store.receiving_close) %> · updates every 30 seconds</div></div>
   <div class="btn-row"><a class="btn" href="/store/<%= store.id %>/roster">Evacuation roster (<%= inStore.length %>)</a><a class="btn" href="/store/<%= store.id %>/history">History</a></div>
 </div>
-
-<% if (waiting.length) { %>
-<section class="card attention">
-  <h2>Waiting at the backdoor (<%= waiting.length %>)</h2>
-  <% waiting.forEach(function(v) { %>
-    <div class="waiting-item">
-      <%- include('_visitcard', { v: v }) %>
-      <% if (v.status === 'blocked') { %>
-        <p class="error"><strong>Blocked:</strong> <%= v.hard_failures.join('; ') %></p>
-        <% const insOnly = v.hard_failures.every(function(f){ return f.indexOf('Insurance:') === 0; }); %>
-        <% if (insOnly && ['store_manager','dsd_ops','admin'].includes(user.role)) { %>
-          <form method="post" action="/store/<%= store.id %>/visits/<%= v.id %>/override" class="inline-form">
-            <%- include('../partials/csrf') %>
-            <input name="reason" placeholder="Reason for insurance override (required)" required>
-            <button class="btn warn">Override for this visit</button>
-          </form>
-        <% } else if (insOnly) { %><p class="muted">A store manager can override this insurance block.</p><% } %>
-      <% } else { %>
-        <% if (v.soft_failures.length) { %><p class="warn-text"><strong>Check:</strong> <%= v.soft_failures.join('; ') %></p><% } %>
-        <form method="post" action="/store/<%= store.id %>/visits/<%= v.id %>/approve" class="inline-form">
-          <%- include('../partials/csrf') %>
-          <% if (v.soft_failures.length) { %><input name="reason" placeholder="Reason to admit (required)" required><% } %>
-          <button class="btn primary">Photo matches · admit</button>
-        </form>
-      <% } %>
-      <form method="post" action="/store/<%= store.id %>/visits/<%= v.id %>/deny" class="inline-form">
-        <%- include('../partials/csrf') %>
-        <input name="reason" placeholder="Reason (optional)"><button class="btn danger">Deny</button>
-      </form>
-    </div>
-  <% }) %>
-</section>
-<% } %>
 
 <div class="grid2">
 <section class="card">
@@ -45,9 +12,6 @@
     <div class="instore-item <%= v.expected_out_at && new Date(v.expected_out_at) < new Date() ? 'overdue' : '' %>">
       <%- include('_visitcard', { v: v }) %>
       <div class="btn-row">
-        <% if (!v.acknowledged_at) { %>
-          <form method="post" action="/store/<%= store.id %>/visits/<%= v.id %>/ack"><%- include('../partials/csrf') %><button class="btn primary small">Acknowledge</button></form>
-        <% } %>
         <details><summary class="btn small">Check out</summary>
           <form method="post" action="/store/<%= store.id %>/visits/<%= v.id %>/checkout" class="stack">
             <%- include('../partials/csrf') %>
@@ -64,7 +28,7 @@
 
 <section class="card">
   <h2>Today's arrivals (<%= arrivals.filter(a => a.status !== 'cancelled').length %>)</h2>
-  <% if (!arrivals.length) { %><p class="muted">No scheduled or announced visits today.</p><% } %>
+  <% if (!arrivals.length) { %><p class="muted">No scheduled visits today.</p><% } %>
   <table class="table compact">
   <thead><tr><th>Window</th><th>Vendor</th><th>Type</th><th>Status</th></tr></thead>
   <tbody>
@@ -72,7 +36,7 @@
     <tr class="<%= a.status === 'cancelled' ? 'struck' : '' %>">
       <td><%= fmtClock(a.window_start) %>–<%= fmtClock(a.window_end) %><% if (over) { %> <span class="pill warn" title="More arrivals than backdoor capacity this hour">busy</span><% } %></td>
       <td><%= a.company_name %><% if (a.planned_work) { %><br><span class="muted small"><%= a.planned_work %></span><% } %></td>
-      <td><%= VISIT_TYPES[a.visit_type] %><%= a.agreement_id ? '' : ' (announced)' %></td>
+      <td><%= VISIT_TYPES[a.visit_type] %></td>
       <td><span class="pill <%= a.status %>"><%= a.visit_status === 'checked_in' ? 'In store' : statusLabel(a.status) %></span><% if (a.eta && a.status !== 'completed') { %><br><span class="small">ETA <%= fmtTime(a.eta, store.timezone) %></span><% } %></td>
     </tr>
   <% }) %>

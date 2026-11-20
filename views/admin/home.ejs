@@ -1,5 +1,5 @@
 <%- include('../partials/head', { wide: true }) %>
-<h1>DSD ops</h1>
+<div class="page-head"><div><h1>Overview</h1><div class="sub">Check-ins across all stores</div></div><div class="btn-row"><a class="btn primary" href="/reports">Reports</a><a class="btn" href="/reports/visits">Visit log</a></div></div>
 <% if (!mailEnabled) { %><div class="flash warning"><strong>Email isn't set up.</strong> Vendor sign-in codes are shown on screen instead of emailed, so anyone can sign in as any rep. That's fine for testing; add the SMTP settings in Render before real reps use the app.</div><% } %>
 <div class="stats">
   <a class="stat" href="/admin/identity"><span><%= counts.identity %></span>Identity reviews</a>
@@ -7,12 +7,12 @@
   <a class="stat" href="/admin/credentials"><span><%= counts.credentials %></span>Credentials to verify</a>
   <a class="stat" href="/admin/vendors"><span><%= counts.vendors %></span>Vendor requests</a>
   <a class="stat" href="/stores"><span><%= counts.in_store %></span>In stores now</a>
-  <a class="stat" href="/stores"><span><%= counts.waiting %></span>Waiting at backdoors</a>
+  <a class="stat" href="/reports/visits?status=blocked"><span><%= counts.blocked_24h %></span>Blocked, last 24h</a>
   <a class="stat" href="/admin/stores"><span><%= counts.stores %></span>Active stores</a>
-  <a class="stat" href="/admin/audit"><span><%= counts.visits_24h %></span>Visits, last 24h</a>
+  <a class="stat" href="/reports/visits"><span><%= counts.visits_24h %></span>Check-ins, last 24h</a>
 </div>
 <section class="card">
-  <div class="row-between"><h2>Alerts</h2><a class="btn small" href="/admin/visits.csv">Export visits (30 days)</a></div>
+  <h2>Alerts</h2>
   <% if (!recentAlerts.length) { %><p class="muted">No open alerts.</p><% } %>
   <ul class="list">
   <% recentAlerts.forEach(function(a) { %>

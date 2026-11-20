@@ -72,6 +72,7 @@ function createApp() {
   app.use(require('./routes/store'));
   app.use(require('./routes/merchant'));
   app.use(require('./routes/admin'));
+  app.use(require('./routes/reports'));
 
   app.use((req, res) => {
     res.status(404).render('error', { title: 'Not found', message: 'That page does not exist.' });

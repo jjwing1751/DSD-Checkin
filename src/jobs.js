@@ -61,7 +61,7 @@ async function autoCloseVisits() {
     });
   }
   // Pending approvals nobody acted on for 4 hours are cancelled.
-  await db.q(`UPDATE visits SET status = 'cancelled' WHERE status IN ('pending_approval','blocked') AND requested_at < now() - interval '4 hours'`);
+  await db.q(`UPDATE visits SET status = 'cancelled' WHERE status = 'pending_approval' AND requested_at < now() - interval '4 hours'`);
   return closed.length;
 }
 

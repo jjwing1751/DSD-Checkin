@@ -82,7 +82,7 @@ const png = () => new Blob([Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAA
 before(async () => {
   await db.q('DROP SCHEMA public CASCADE; CREATE SCHEMA public;');
   await migrate();
-  execFileSync(process.execPath, [path.join(__dirname, '..', 'scripts', 'seed-demo.js')], { env: { ...process.env }, stdio: 'ignore' });
+  execFileSync(process.execPath, [path.join(__dirname, 'seed-fixtures.js')], { env: { ...process.env }, stdio: 'ignore' });
   await db.q(`INSERT INTO users(email, name, role, password_hash, status) SELECT 'admin@demo.example', 'Admin', 'admin', password_hash, 'active' FROM users WHERE email = 'ops@demo.example'`);
   // Make every demo schedule daily so the tests don't depend on the weekday they run.
   await db.q(`UPDATE service_agreements SET days_of_week = '{0,1,2,3,4,5,6}'`);
@@ -104,7 +104,7 @@ test('personal email domains cannot enroll', async () => {
   assert.match(r.text, /Use your company email address/);
 });
 
-test('verified rep checks in by QR at the store, receiver acknowledges, rep checks out with work proof', async () => {
+test('verified rep checks in by QR in one tap, shows on the store dashboard, and checks out in one tap', async () => {
   const s = await store('101');
   const { c } = await repLogin('pat@prairiesnacks.example');
   const start = await c.get(`/s/${s.qr_token}`);
@@ -125,8 +125,6 @@ test('verified rep checks in by QR at the store, receiver acknowledges, rep chec
   const dash = await rc.get(`/store/${s.id}`);
   assert.match(dash.text, /Pat Driver/);
   assert.match(dash.text, /In store now \(1\)/);
-  const ack = await rc.post(`/store/${s.id}/visits/${v.id}/ack`);
-  assert.equal(ack.status, 302);
   const roster = await rc.get(`/store/${s.id}/roster`);
   assert.match(roster.text, /Pat Driver/);
 
@@ -144,32 +142,29 @@ test('verified rep checks in by QR at the store, receiver acknowledges, rep chec
   assert.equal((await rc.get(`/store/${other.id}`)).status, 403);
 });
 
-test('outside the geofence needs receiver approval with a reason', async () => {
+test('outside the geofence still checks in at once, recorded with a warning', async () => {
   const s = await store('101');
   const { c } = await repLogin('lee@lakeshorebev.example');
   await c.get(`/s/${s.qr_token}`);
   const r = await c.post(`/s/${s.qr_token}/checkin`, { visit_type: 'merchandising', lat: '41.0', lng: '-87.0', accuracy: '10' });
   const pass = await c.follow(r);
-  assert.match(pass.text, /Waiting for the receiver/);
+  assert.match(pass.text, /CHECKED IN/);
   const v = await db.one(`SELECT * FROM visits WHERE user_id = (SELECT id FROM users WHERE email = 'lee@lakeshorebev.example') ORDER BY id DESC LIMIT 1`);
-  assert.equal(v.status, 'pending_approval');
+  assert.equal(v.status, 'checked_in');
+  assert.ok(v.check_in_at);
+  assert.equal(v.location_ok, false);
   assert.ok(v.soft_failures.some((f) => f.startsWith('Location')));
   assert.ok(v.soft_failures.some((f) => f.includes('Food handler')));
+  assert.ok(await db.one(`SELECT 1 FROM alerts WHERE kind = 'checkin_warning' AND visit_id = $1`, [v.id]));
 
+  // The receiver can check someone out who forgot to.
   const rc = await staffLogin('receiver101@demo.example');
   await rc.get(`/store/${s.id}`);
-  await rc.post(`/store/${s.id}/visits/${v.id}/approve`, {});
-  assert.equal((await db.one('SELECT status FROM visits WHERE id = $1', [v.id])).status, 'pending_approval', 'reason required');
-  await rc.get(`/store/${s.id}`);
-  await rc.post(`/store/${s.id}/visits/${v.id}/approve`, { reason: 'GPS weak in back room; ID checked' });
-  const after = await db.one('SELECT * FROM visits WHERE id = $1', [v.id]);
-  assert.equal(after.status, 'checked_in');
-  assert.equal(after.override_scope, 'soft');
-  await rc.get(`/store/${s.id}`);
   await rc.post(`/store/${s.id}/visits/${v.id}/checkout`, { note: 'ok' });
+  assert.equal((await db.one('SELECT status FROM visits WHERE id = $1', [v.id])).status, 'checked_out');
 });
 
-test('lapsed insurance blocks check-in; receiver cannot override, store manager can for one visit', async () => {
+test('lapsed insurance blocks check-in until DSD ops sets a company override', async () => {
   const s = await store('101');
   await db.q(`UPDATE insurance_policies SET expiry_date = current_date - 2 WHERE coverage_type = 'Commercial general liability'
                AND vendor_company_id = (SELECT id FROM vendor_companies WHERE name = 'Prairie Snacks Co')`);
@@ -181,21 +176,8 @@ test('lapsed insurance blocks check-in; receiver cannot override, store manager 
   assert.equal(v.status, 'blocked');
   assert.deepEqual(v.hard_failures, ['Insurance: Commercial general liability']);
 
-  const rc = await staffLogin('receiver101@demo.example');
-  await rc.get(`/store/${s.id}`);
-  const denied = await rc.post(`/store/${s.id}/visits/${v.id}/override`, { reason: 'x' });
-  assert.equal(denied.status, 403);
-
-  const mc = await staffLogin('manager101@demo.example');
-  await mc.get(`/store/${s.id}`);
-  await mc.post(`/store/${s.id}/visits/${v.id}/override`, { reason: 'Renewal emailed, COI pending' });
-  const o = await db.one('SELECT * FROM visits WHERE id = $1', [v.id]);
-  assert.equal(o.status, 'checked_in');
-  assert.equal(o.override_scope, 'visit_insurance');
-  assert.equal(o.insurance_status.override.scope, 'visit');
-  assert.ok(await db.one(`SELECT 1 FROM alerts WHERE kind = 'insurance_override' AND visit_id = $1`, [v.id]));
-  await c.get(`/visit/${v.id}`);
-  await c.post(`/visit/${v.id}/checkout`, {}, { multipart: true });
+  // A blocked attempt is not an open visit: the rep can retry right away.
+  assert.equal((await c.get(`/s/${s.qr_token}`)).status, 200);
 
   // DSD ops company override lets the next check-in through without store action.
   const ops = await staffLogin('ops@demo.example');
@@ -248,10 +230,9 @@ test('new rep with unknown company domain self-enrolls, verifies identity, and i
   const v = await db.one('SELECT * FROM visits WHERE user_id = $1 ORDER BY id DESC LIMIT 1', [u.id]);
   assert.equal(v.status, 'blocked');
   assert.ok(v.hard_failures.includes('Vendor company is pending'));
-  // A store manager cannot override a non-insurance block.
-  const mc = await staffLogin('manager101@demo.example');
-  await mc.get(`/store/${s.id}`);
-  assert.equal((await mc.post(`/store/${s.id}/visits/${v.id}/override`, { reason: 'x' })).status, 400);
+  // Blocked attempts show in the HQ visit log.
+  const ops2 = await staffLogin('ops@demo.example');
+  assert.match((await ops2.get('/reports/visits?status=blocked')).text, /Alex Baker/);
 });
 
 test('audit log is append-only', async () => {
@@ -282,7 +263,7 @@ test('every staff page renders', async () => {
   const v = await db.one(`SELECT id FROM visits WHERE store_id = $1 LIMIT 1`, [s.id]);
   for (const url of ['/admin', '/admin/stores', `/admin/stores/${s.id}`, `/admin/stores/${s.id}/poster`, '/admin/vendors', `/admin/vendors/${vendor.id}`,
     '/admin/insurance', '/admin/credentials', '/admin/identity', '/admin/users', `/admin/users/${u.id}`, '/admin/settings', '/admin/audit',
-    '/admin/audit?format=csv', '/admin/visits.csv', '/stores', `/store/${s.id}`, `/store/${s.id}/history`, `/store/${s.id}/history?format=csv`,
+    '/admin/audit?format=csv', '/reports', '/reports?group=month', '/reports?group=store', '/reports?group=store_day', '/reports?group=store_month', '/reports?group=vendor', '/reports?group=store_day&format=csv', '/reports/visits', '/reports/visits?format=csv', '/stores', `/store/${s.id}`, `/store/${s.id}/history`, `/store/${s.id}/history?format=csv`,
     `/store/${s.id}/visits/${v.id}`, '/merchant', `/merchant/agreements/${agr.id}`, '/merchant/compliance', '/merchant/compliance?format=csv']) {
     const r = await ops.get(url);
     assert.equal(r.status, 200, `${url} -> ${r.status}: ${r.text.slice(0, 200)}`);
@@ -295,11 +276,45 @@ test('every staff page renders', async () => {
   assert.equal(create.status, 302);
   assert.equal((await merch.get('/admin')).status, 403);
   const rep = (await repLogin('pat@prairiesnacks.example')).c;
-  for (const url of ['/rep', '/rep/announce', '/rep/credentials', '/rep/visits', '/company']) {
+  for (const url of ['/rep', '/rep/credentials', '/rep/visits', '/company']) {
     const r = await rep.get(url);
     assert.equal(r.status, 200, `${url} -> ${r.status}`);
   }
-  await rep.get('/rep/announce');
-  const ann = await rep.post('/rep/announce', { store_id: String(s.id), visit_type: 'sales_call', date: new Date().toISOString().slice(0, 10), eta: '10:30', dwell: '30' });
-  assert.equal(ann.status, 302);
+  assert.equal((await rep.get('/rep/announce')).status, 404);
+  assert.equal((await rep.get('/reports')).status, 403);
+});
+
+test('test data loads, feeds the reports, and removes cleanly', async () => {
+  const ops = await staffLogin('ops@demo.example');
+  await ops.get('/admin/settings');
+  const before = await db.one('SELECT count(*)::int AS n FROM vendor_companies');
+  const load = await ops.post('/admin/demo', { action: 'load' });
+  assert.equal(load.status, 302);
+  const vendors = await db.one('SELECT count(*)::int AS n FROM vendor_companies WHERE is_demo');
+  assert.equal(vendors.n, 20);
+  const visits = await db.one('SELECT count(*)::int AS n FROM visits v JOIN stores s ON s.id = v.store_id WHERE s.is_demo');
+  assert.ok(visits.n > 3000, `visits: ${visits.n}`);
+
+  const d101 = await store('D101');
+  const today = new Date().toISOString().slice(0, 10);
+  const from = new Date(Date.now() - 29 * 86400000).toISOString().slice(0, 10);
+  const r = await ops.get(`/reports?group=store_month&store=${d101.id}&from=${from}&to=${today}`);
+  assert.equal(r.status, 200);
+  assert.match(r.text, /Check-ins/);
+  assert.match(r.text, /Northbrook|D101|#D101/);
+  const csv = await ops.get(`/reports?group=store&from=${from}&to=${today}&format=csv`);
+  assert.match(csv.text, /^store,store_name,check_ins/);
+  assert.match(csv.text, /D101/);
+  // Roll-up totals equal the sum of the store rows.
+  const lines = csv.text.trim().split('\n').slice(1).map((l) => l.split(','));
+  const sum = lines.reduce((a, l) => a + Number(l[2]), 0);
+  const tot = await db.one(`SELECT count(*)::int AS n FROM visits v JOIN stores s ON s.id = v.store_id
+    WHERE v.status IN ('checked_in','checked_out','auto_closed') AND (v.check_in_at AT TIME ZONE s.timezone)::date BETWEEN $1 AND $2`, [from, today]);
+  assert.equal(sum, tot.n);
+
+  await ops.get('/admin/settings');
+  await ops.post('/admin/demo', { action: 'remove' });
+  assert.equal((await db.one('SELECT count(*)::int AS n FROM vendor_companies WHERE is_demo')).n, 0);
+  assert.equal((await db.one('SELECT count(*)::int AS n FROM stores WHERE is_demo')).n, 0);
+  assert.equal((await db.one('SELECT count(*)::int AS n FROM vendor_companies')).n, before.n);
 });

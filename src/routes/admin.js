@@ -11,6 +11,7 @@ const { flash, intParam, httpError, toArray, csvList, numOrNull, toCsv } = requi
 const { ROLES, VISIT_TYPES, COVERAGE_TYPES } = require('../constants');
 const { DEFAULT_WEIGHTS } = require('../metrics');
 const mail = require('../mail');
+const demo = require('../demo');
 
 const router = express.Router();
 const ops = requireRole('dsd_ops');
@@ -26,7 +27,7 @@ router.get('/admin', ops, async (req, res) => {
       (SELECT count(*) FROM credentials WHERE status = 'submitted')::int AS credentials,
       (SELECT count(*) FROM vendor_companies WHERE status = 'pending')::int AS vendors,
       (SELECT count(*) FROM visits WHERE status = 'checked_in')::int AS in_store,
-      (SELECT count(*) FROM visits WHERE status IN ('pending_approval','blocked'))::int AS waiting,
+      (SELECT count(*) FROM visits WHERE status = 'blocked' AND requested_at > now() - interval '24 hours')::int AS blocked_24h,
       (SELECT count(*) FROM stores WHERE active)::int AS stores,
       (SELECT count(*) FROM visits WHERE requested_at > now() - interval '24 hours')::int AS visits_24h`);
   const recentAlerts = await db.many(`SELECT a.*, s.name AS store_name FROM alerts a LEFT JOIN stores s ON s.id = a.store_id
@@ -418,7 +419,7 @@ router.get('/admin/settings', ops, async (req, res) => {
   const rows = await db.many('SELECT key, value FROM settings');
   const settings = Object.fromEntries(rows.map((r) => [r.key, r.value]));
   const domains = await db.many('SELECT domain FROM blocked_email_domains ORDER BY domain');
-  res.render('admin/settings', { title: 'Settings', settings, weights: { ...DEFAULT_WEIGHTS, ...(settings.service_score_weights || {}) }, domains: domains.map((d) => d.domain) });
+  res.render('admin/settings', { title: 'Settings', hasDemo: await demo.hasDemo(), settings, weights: { ...DEFAULT_WEIGHTS, ...(settings.service_score_weights || {}) }, domains: domains.map((d) => d.domain) });
 });
 
 router.post('/admin/settings', ops, async (req, res) => {
@@ -463,23 +464,19 @@ router.get('/admin/audit', ops, async (req, res) => {
   res.render('admin/audit', { title: 'Audit trail', rows, stores, from: from || '', to: to || '', storeId, entity });
 });
 
-router.get('/admin/visits.csv', ops, async (req, res) => {
-  const from = /^\d{4}-\d{2}-\d{2}$/.test(req.query.from || '') ? req.query.from : null;
-  const to = /^\d{4}-\d{2}-\d{2}$/.test(req.query.to || '') ? req.query.to : null;
-  const rows = await db.many(`
-    SELECT v.id AS visit_id, s.store_number, s.name AS store, c.name AS company, u.name AS person, u.email, v.visit_type, v.source, v.method, v.status,
-           v.requested_at, v.check_in_at, v.check_out_at,
-           CASE WHEN v.status = 'checked_out' THEN round(extract(epoch FROM v.check_out_at - v.check_in_at) / 60) END AS dwell_min,
-           array_to_string(v.hard_failures, '; ') AS hard_failures, array_to_string(v.soft_failures, '; ') AS soft_failures,
-           v.override_scope, v.override_reason, ob.email AS override_by, (v.insurance_status->>'compliant') AS insurance_compliant,
-           v.location_ok, v.check_in_distance_m, v.discrepancy, v.receiver_note, v.work_notes
-      FROM visits v JOIN stores s ON s.id = v.store_id JOIN users u ON u.id = v.user_id
-      LEFT JOIN vendor_companies c ON c.id = v.vendor_company_id LEFT JOIN users ob ON ob.id = v.override_by
-     WHERE v.requested_at >= coalesce($1::date, current_date - 30) AND v.requested_at < coalesce($2::date, current_date) + 1
-     ORDER BY v.requested_at`, [from, to]);
-  res.set('Content-Type', 'text/csv');
-  res.set('Content-Disposition', 'attachment; filename="visits.csv"');
-  res.send(toCsv(rows));
+// ---------- Test data ----------
+router.post('/admin/demo', ops, async (req, res) => {
+  if (req.body.action === 'remove') {
+    await demo.removeDemo();
+    await audit(req, { action: 'demo.removed', entity: 'settings' });
+    flash(req, 'success', 'Test data removed.');
+  } else {
+    if (req.body.action === 'reload') await demo.removeDemo();
+    const r = await demo.loadDemo();
+    await audit(req, { action: 'demo.loaded', entity: 'settings', after: r });
+    flash(req, 'success', r.skipped ? 'Test data is already loaded.' : `Loaded ${r.vendors} test vendors, ${r.stores} test stores and ${r.visits.toLocaleString()} visits over the last 90 days.`);
+  }
+  res.redirect('/admin/settings');
 });
 
 module.exports = router;
