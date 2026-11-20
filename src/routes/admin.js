@@ -14,7 +14,8 @@ const { DEFAULT_WEIGHTS } = require('../metrics');
 const router = express.Router();
 const ops = requireRole('dsd_ops');
 const newToken = () => crypto.randomBytes(12).toString('base64url');
-const baseUrl = (req) => process.env.PUBLIC_URL || `${req.protocol}://${req.get('host')}`;
+// QR posters use PUBLIC_URL (e.g. a custom domain), else the URL Render assigns, else this request's host.
+const baseUrl = (req) => (process.env.PUBLIC_URL || process.env.RENDER_EXTERNAL_URL || `${req.protocol}://${req.get('host')}`).replace(/\/+$/, '');
 
 // ---------- Overview ----------
 router.get('/admin', ops, async (req, res) => {

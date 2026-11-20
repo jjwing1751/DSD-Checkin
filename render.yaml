@@ -23,8 +23,7 @@ services:
         sync: false
       - key: ADMIN_PASSWORD
         sync: false
-      - key: PUBLIC_URL
-        sync: false
+      # PUBLIC_URL is optional: QR posters use Render's assigned URL unless you add a custom domain.
       # Email for sign-in codes and alerts (any SMTP provider, e.g. SendGrid, Postmark, SES).
       - key: SMTP_HOST
         sync: false
