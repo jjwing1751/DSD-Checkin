@@ -8,17 +8,17 @@ Built from the product spec "DSD Store Check-in: Product Requirements (Draft)".
 
 | Who | What they can do |
 | --- | --- |
-| Vendor / field service rep | Self-enroll with a company email (personal domains rejected, one-time code), submit ID photo + selfie, scan the backdoor QR to check in (location checked against the store geofence), show a digital visitor pass, check out with work done and shelf photos, confirm / move / cancel scheduled visits with ETA, announce unscheduled visits, upload personal credentials |
+| Vendor / field service rep | Self-enroll with a company email (personal domains rejected, one-time code), submit ID photo + selfie, scan the backdoor QR to check in (location checked against the store geofence), one tap to check in, one tap to check out (work done, notes and shelf photos optional), digital visitor pass, upload personal credentials |
 | Vendor company admin | Upload certificates of insurance (COI), see insurance status, manage their reps (suspend, remove, make admin), see missed visits |
-| Receiver | Store dashboard: waiting at the backdoor (with photo), in store now, today's arrivals vs backdoor capacity, approve soft-fail check-ins with a reason, acknowledge, check people out, receiver notes and discrepancies, evacuation roster, history + CSV |
-| Store manager | Everything a receiver does, plus per-visit insurance overrides and receiving hours / capacity |
+| Receiver | Store dashboard: in store now (with photo), today's scheduled arrivals, check out someone who forgot, receiver notes and discrepancies, evacuation roster, history + CSV |
+| Store manager | Everything a receiver does, plus receiving hours / capacity |
 | HQ merchant | Owns agreed service schedules (days, window, dwell, min visits/week, per store or many stores at once) and the vendor compliance report with the weighted Service Score, CSV export |
-| DSD ops / admin | Vendor companies and approved domains, COI verification, company insurance overrides (max 14 days), configurable insurance requirements, configurable credential types (hard or soft), identity review, users, stores and printable QR posters, settings, append-only audit trail + CSV, visit export |
+| DSD ops / admin | Vendor companies and approved domains, COI verification, company insurance overrides (max 14 days), configurable insurance requirements, configurable credential types (hard or soft), identity review, users, stores and printable QR posters, settings, append-only audit trail + CSV, check-in reports (by day, month, store, store by day, store by month, vendor, with totals and CSV), visit log, load/remove test data |
 
 Check-in rules:
 
-* **Hard fails block** check-in: identity not verified, vendor company not active, insurance missing/expired/under limits, any "hard" credential. Only the insurance block can be overridden (store manager for one visit, DSD ops company-wide for up to 14 days). Every override needs a reason, is stored on the visit and raises an alert to DSD ops.
-* **Soft fails** wait for the receiver: phone outside the geofence or location off, any "soft" credential. The receiver admits with a reason (logged) or denies.
+* **Hard fails block** check-in: identity not verified, vendor company not active, insurance missing/expired/under limits, any "hard" credential. Only the insurance block can be overridden (DSD ops, company-wide, for up to 14 days). Every override needs a reason, is stored on the visit and raises an alert to DSD ops.
+* **Soft fails** never make anyone wait: phone outside the geofence or location off, any "soft" credential. The rep is checked in at once and the visit is recorded with a warning (shown in reports and alerted to the store manager and DSD ops).
 * Insurance status at the moment of check-in is stored on each visit.
 
 Background jobs run inside the web process every 15 minutes (with a database lock so only one instance runs them): generate expected visits 14 days ahead, mark missed visits, auto-close visits still open at store close (flagged "no check-out", excluded from dwell), overstay alerts, 30/7-day insurance and credential expiry reminders, and the 18-month retention purge.
@@ -43,13 +43,13 @@ Database migrations run automatically on every start.
 npm install
 export DATABASE_URL=postgres://postgres@localhost:5432/dsd
 export ADMIN_EMAIL=you@example.com ADMIN_PASSWORD=change-me-please
-npm run seed:demo      # optional: 3 stores, 3 vendors, staff and schedules (password demo-password-123)
+npm run seed:demo      # optional: test data (8 stores, 20 vendors, 90 days of visits) + demo staff (password demo-password-123)
 npm run dev            # http://localhost:3000
 ```
 
 Without SMTP settings (and outside production) sign-in codes are shown on screen and logged.
 
-Demo accounts after `seed:demo`: `ops@demo.example`, `merchant@demo.example`, `receiver101@demo.example`, `manager101@demo.example` (staff, password above); reps `pat@prairiesnacks.example`, `lee@lakeshorebev.example`, `jo@coldchainsvc.example` sign in with a code.
+Test data: on Render, sign in as admin and use **Admin › Settings › Load test data** (or `npm run seed:demo` locally, which also adds `ops@`, `merchant@`, `receiver@` and `manager@demo.example` with the password above). Test reps such as `pat@prairiesnacks.example` sign in with a code. **Remove test data** deletes all of it.
 
 ## Tests
 

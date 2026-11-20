@@ -1,5 +1,5 @@
 <%- include('../partials/head') %>
-<h1>Hi <%= user.name || '' %></h1>
+<h1><%= user.name || 'My visits' %></h1>
 
 <% if (user.status === 'pending_identity') { %>
   <div class="flash warning">Verify your identity before your first check-in.<% if (user.identity_reject_reason) { %> Last attempt: <%= user.identity_reject_reason %><% } %> <a class="btn small" href="/rep/identity">Verify now</a></div>
@@ -17,57 +17,24 @@
 <% } %>
 
 <% if (openVisit) { %>
-  <a class="card pass-link" href="/visit/<%= openVisit.id %>">
-    <strong><%= openVisit.status === 'checked_in' ? 'You are checked in' : statusLabel(openVisit.status) %></strong> at <%= openVisit.store_name %>.
-    <span class="btn primary">Open pass</span>
-  </a>
+  <section class="card">
+    <div class="row-between"><div><strong>Checked in</strong> at <%= openVisit.store_name %><br><span class="muted small">since <%= fmtTime(openVisit.check_in_at, openVisit.timezone) %></span></div><a class="btn small" href="/visit/<%= openVisit.id %>">Show pass</a></div>
+    <form method="post" action="/visit/<%= openVisit.id %>/checkout" enctype="multipart/form-data" class="mt"><%- include('../partials/csrf') %><button class="btn primary big block">Check out</button></form>
+  </section>
 <% } else { %>
-  <section class="card scan-hint">
-    <h2>At the store?</h2>
-    <p>Open your phone camera and scan the QR poster at the backdoor.</p>
+  <section class="card checkin-hero">
+    <div class="store">Ready to check in</div>
+    <p class="meta">Scan the QR poster at the store's back door with your phone camera.</p>
   </section>
 <% } %>
 
 <section class="card">
-  <div class="row-between"><h2>Upcoming visits</h2><a class="btn small" href="/rep/announce">+ Announce</a></div>
-  <% if (!upcoming.length) { %><p class="muted">No scheduled visits for your company in the next 7 days.</p><% } %>
-  <ul class="list">
-  <% upcoming.forEach(function(e) { %>
-    <li>
-      <div class="row-between">
-        <div>
-          <strong><%= fmtDate(e.visit_date) %></strong> · <%= fmtClock(e.window_start) %>–<%= fmtClock(e.window_end) %><br>
-          <%= e.store_name %> <span class="muted">#<%= e.store_number %></span> · <%= VISIT_TYPES[e.visit_type] %>
-          <% if (e.eta) { %><br><span class="muted">ETA <%= fmtTime(e.eta, e.timezone) %></span><% } %>
-        </div>
-        <span class="pill <%= e.status %>"><%= statusLabel(e.status) %></span>
-      </div>
-      <details>
-        <summary>Confirm, move or cancel</summary>
-        <form method="post" action="/rep/expected/<%= e.id %>" class="stack">
-          <%- include('../partials/csrf') %>
-          <label>ETA<input type="time" name="eta"></label>
-          <label>Move to date<input type="date" name="date" value="<%= e.visit_date %>"></label>
-          <label>Planned work<input name="planned_work" value="<%= e.planned_work || '' %>" placeholder="e.g. 40 cases, endcap reset"></label>
-          <div class="btn-row">
-            <button class="btn primary" name="action" value="confirm">Confirm</button>
-            <button class="btn" name="action" value="move">Move</button>
-            <button class="btn danger" name="action" value="cancel">Cancel visit</button>
-          </div>
-        </form>
-      </details>
-    </li>
-  <% }) %>
-  </ul>
-</section>
-
-<section class="card">
   <h2>Recent visits</h2>
   <% if (!recent.length) { %><p class="muted">None yet.</p><% } %>
-  <ul class="list">
+  <table class="table compact"><tbody>
   <% recent.forEach(function(v) { %>
-    <li class="row-between"><span><%= v.store_name %> · <%= fmtDateTime(v.check_in_at || v.requested_at, v.timezone) %></span><span class="pill <%= v.status %>"><%= statusLabel(v.status) %></span></li>
+    <tr><td><%= v.store_name %><br><span class="muted small"><%= fmtDate(v.check_in_at || v.requested_at) %></span></td><td class="num small"><%= fmtTime(v.check_in_at || v.requested_at, v.timezone) %><%= v.check_out_at ? '–' + fmtTime(v.check_out_at, v.timezone) : '' %></td><td class="num"><span class="pill <%= v.status %>"><%= statusLabel(v.status) %></span></td></tr>
   <% }) %>
-  </ul>
+  </tbody></table>
 </section>
 <%- include('../partials/foot') %>

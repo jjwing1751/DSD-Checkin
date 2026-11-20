@@ -1,0 +1,78 @@
+<%- include('../partials/head', { wide: true }) %>
+<%
+  const base = { from: f.from, to: f.to, store: f.store || '', vendor: f.vendor || '', region: f.region || '' };
+  const qs = function(o) { const p = Object.assign({}, base, { group: group }, o); Object.keys(p).forEach(function(k) { if (p[k] === '' || p[k] === null || p[k] === undefined) delete p[k]; }); return new URLSearchParams(p).toString(); };
+  const n = function(x) { return x == null ? '—' : Number(x).toLocaleString('en-US'); };
+  const storeDays = total.stores && total.days ? (total.check_ins / Math.max(1, total.stores * total.days)) : 0;
+  const colTitle = { day: 'Day', month: 'Month', store: 'Store', vendor: 'Vendor' };
+%>
+<div class="page-head">
+  <div><h1>Check-in reports</h1><div class="sub"><%= fmtDate(f.from) %> to <%= fmtDate(f.to) %> · store local dates</div></div>
+  <div class="btn-row"><a class="btn" href="/reports/visits?<%= qs({ group: '' }) %>">Visit log</a><a class="btn" href="/reports?<%= qs({ format: 'csv' }) %>">Download CSV</a></div>
+</div>
+
+<div class="row-between mb">
+  <div class="seg" aria-label="Group by">
+    <% Object.keys(groups).forEach(function(k) { %><a href="/reports?<%= qs({ group: k }) %>" class="<%= k === group ? 'on' : '' %>"><%= groups[k].label %></a><% }) %>
+  </div>
+</div>
+<%- include('_filters', { action: '/reports' }) %>
+
+<div class="stats">
+  <div class="stat"><span><%= n(total.check_ins) %></span>Check-ins</div>
+  <div class="stat"><span><%= n(total.check_outs) %></span>Check-outs</div>
+  <div class="stat"><span><%= n(total.no_check_out) %></span>No check-out (auto-closed)</div>
+  <div class="stat"><span><%= n(total.in_store) %></span>In store now</div>
+  <div class="stat"><span><%= n(total.blocked) %></span>Blocked at check-in</div>
+  <div class="stat"><span><%= total.avg_dwell_min == null ? '—' : total.avg_dwell_min + ' min' %></span>Avg time in store</div>
+  <div class="stat"><span><%= storeDays.toFixed(1) %></span>Check-ins per store per day</div>
+  <div class="stat"><span><%= n(total.vendors) %> / <%= n(total.reps) %></span>Vendors / reps</div>
+</div>
+
+<section class="card flush">
+<div class="table-wrap">
+<table class="table">
+<thead><tr>
+  <% g.cols.forEach(function(c) { %><th><%= colTitle[c] %></th><% }) %>
+  <th class="num">Check-ins</th><th class="bar-cell"></th><th class="num">Check-outs</th><th class="num">No check-out</th><th class="num">In store</th><th class="num">Blocked</th><th class="num">Warnings</th>
+  <% if (!g.cols.includes('vendor')) { %><th class="num">Vendors</th><% } %><th class="num">Reps</th>
+  <% if (!g.cols.includes('store')) { %><th class="num">Stores</th><% } %><th class="num">Avg dwell</th>
+</tr></thead>
+<tbody>
+<% rows.forEach(function(r) { %>
+<tr>
+  <% g.cols.forEach(function(c, i) {
+       let href = null;
+       if (c === 'store') href = '/reports?' + qs({ group: 'store_day', store: r.keys[i] });
+       else if (c === 'day') href = '/reports?' + qs({ group: 'store', from: r.keys[i], to: r.keys[i] });
+       else if (c === 'month') { const m = r.keys[i]; const end = new Date(Date.UTC(Number(m.slice(0,4)), Number(m.slice(5,7)), 0)).toISOString().slice(0,10); href = '/reports?' + qs({ group: 'store_month', from: m, to: end < f.to ? end : f.to }); }
+       else if (c === 'vendor' && r.keys[i]) href = '/reports?' + qs({ group: 'store', vendor: r.keys[i] }); %>
+    <td class="label"><% if (href) { %><a href="<%= href %>"><%= r.labels[i] %></a><% } else { %><%= r.labels[i] %><% } %></td>
+  <% }) %>
+  <td class="num"><%= n(r.check_ins) %></td>
+  <td class="bar-cell"><div class="bar" style="width:<%= Math.round(100 * r.check_ins / max) %>%"></div></td>
+  <td class="num"><%= n(r.check_outs) %></td>
+  <td class="num"><%= r.no_check_out ? n(r.no_check_out) : '' %></td>
+  <td class="num"><%= r.in_store ? n(r.in_store) : '' %></td>
+  <td class="num"><% if (r.blocked) { %><span class="error"><%= n(r.blocked) %></span><% } %></td>
+  <td class="num"><%= r.warnings ? n(r.warnings) : '' %></td>
+  <% if (!g.cols.includes('vendor')) { %><td class="num"><%= n(r.vendors) %></td><% } %><td class="num"><%= n(r.reps) %></td>
+  <% if (!g.cols.includes('store')) { %><td class="num"><%= n(r.stores) %></td><% } %>
+  <td class="num"><%= r.avg_dwell_min == null ? '' : r.avg_dwell_min + 'm' %></td>
+</tr>
+<% }) %>
+<% if (!rows.length) { %><tr><td colspan="14" class="muted">No check-ins in this range. Admin › Settings › Load test data adds sample visits.</td></tr><% } %>
+</tbody>
+<% if (rows.length) { %>
+<tfoot><tr>
+  <td colspan="<%= g.cols.length %>">Total (<%= rows.length.toLocaleString('en-US') %> rows)</td>
+  <td class="num"><%= n(total.check_ins) %></td><td></td><td class="num"><%= n(total.check_outs) %></td><td class="num"><%= n(total.no_check_out) %></td><td class="num"><%= n(total.in_store) %></td><td class="num"><%= n(total.blocked) %></td><td class="num"><%= n(total.warnings) %></td>
+  <% if (!g.cols.includes('vendor')) { %><td class="num"><%= n(total.vendors) %></td><% } %><td class="num"><%= n(total.reps) %></td>
+  <% if (!g.cols.includes('store')) { %><td class="num"><%= n(total.stores) %></td><% } %><td class="num"><%= total.avg_dwell_min == null ? '' : total.avg_dwell_min + 'm' %></td>
+</tr></tfoot>
+<% } %>
+</table>
+</div>
+</section>
+<p class="muted small">Check-ins count everyone admitted. "No check-out" means the visit was closed automatically at store close. Click a store, day or month to drill in.</p>
+<%- include('../partials/foot') %>

@@ -3,46 +3,41 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#14532d">
+<meta name="theme-color" content="#111827">
 <title><%= typeof title !== 'undefined' ? title + ' · ' : '' %>Store Check-in</title>
 <link rel="stylesheet" href="/css/app.css">
-<% if (typeof refresh !== 'undefined' && refresh) { %><meta http-equiv="refresh" content="8"><% } %>
 </head>
-<body<% if (typeof autoRefresh !== 'undefined' && autoRefresh) { %> data-autorefresh="30"<% } %>>
+<%
+  const isRep = user && ['rep','field_service','visitor'].includes(user.role);
+  const links = [];
+  if (user) {
+    if (isRep) {
+      links.push(['/rep', 'Check in / out'], ['/rep/visits', 'My history'], ['/rep/credentials', 'My credentials']);
+      if (user.is_vendor_admin) links.push(['/company', 'My company']);
+    } else if (['receiver','store_manager'].includes(user.role)) {
+      if (user.store_id) links.push(['/store/' + user.store_id, 'In store now'], ['/store/' + user.store_id + '/history', 'History'], ['/store/' + user.store_id + '/roster', 'Evacuation roster']);
+    } else {
+      const ops = ['dsd_ops','admin'].includes(user.role);
+      if (ops) links.push(['/admin', 'Overview']);
+      links.push(['/reports', 'Reports'], ['/reports/visits', 'Visit log'], ['/stores', 'Stores'], ['/merchant', 'Schedules'], ['/merchant/compliance', 'Compliance']);
+      if (ops) links.push(['/admin/vendors', 'Vendors'], ['/admin/identity', 'Identity review', 1], ['/admin/insurance', 'Insurance', 1], ['/admin/credentials', 'Credentials', 1], ['/admin/stores', 'Store setup', 1], ['/admin/users', 'Users', 1], ['/admin/audit', 'Audit trail', 1], ['/admin/settings', 'Settings', 1]);
+    }
+  }
+  const isOn = function(href) { return path === href || (href !== '/rep' && href !== '/admin' && href !== '/reports' && path.indexOf(href + '/') === 0); };
+%>
+<body class="<%= isRep ? 'rep' : '' %>"<% if (typeof autoRefresh !== 'undefined' && autoRefresh) { %> data-autorefresh="30"<% } %>>
 <header class="topbar">
   <a class="brand" href="/">Store Check-in</a>
   <% if (user) { %>
+  <nav class="nav"><% links.filter(function(l) { return !l[2]; }).forEach(function(l) { %><a href="<%= l[0] %>" class="<%= isOn(l[0]) ? 'on' : '' %>"><%= l[1] %></a><% }) %>
+    <% const more = links.filter(function(l) { return l[2]; }); if (more.length) { %>
+    <details class="more"><summary class="<%= more.some(function(l) { return isOn(l[0]); }) ? 'on' : '' %>">Admin ▾</summary><div><% more.forEach(function(l) { %><a href="<%= l[0] %>"><%= l[1] %></a><% }) %></div></details>
+    <% } %></nav>
+  <div class="who"><span><%= user.email %></span><form method="post" action="/logout"><input type="hidden" name="_csrf" value="<%= csrf %>"><button>Sign out</button></form></div>
   <details class="menu">
     <summary aria-label="Menu">Menu</summary>
     <nav>
-      <% if (['rep','field_service','visitor'].includes(user.role)) { %>
-        <a href="/rep">My visits</a>
-        <a href="/rep/announce">Announce a visit</a>
-        <a href="/rep/credentials">My credentials</a>
-        <a href="/rep/visits">History</a>
-        <% if (user.is_vendor_admin) { %><a href="/company">My company</a><% } %>
-      <% } else if (['receiver','store_manager'].includes(user.role)) { %>
-        <% if (user.store_id) { %>
-        <a href="/store/<%= user.store_id %>">Dashboard</a>
-        <a href="/store/<%= user.store_id %>/history">History</a>
-        <a href="/store/<%= user.store_id %>/roster">Evacuation roster</a>
-        <% } %>
-      <% } else { %>
-        <% if (['dsd_ops','admin'].includes(user.role)) { %><a href="/admin">Admin home</a><% } %>
-        <a href="/stores">Store dashboards</a>
-        <a href="/merchant">Service schedules</a>
-        <a href="/merchant/compliance">Vendor compliance</a>
-        <% if (['dsd_ops','admin'].includes(user.role)) { %>
-        <a href="/admin/vendors">Vendors</a>
-        <a href="/admin/identity">Identity review</a>
-        <a href="/admin/insurance">Insurance</a>
-        <a href="/admin/credentials">Credentials</a>
-        <a href="/admin/stores">Stores setup</a>
-        <a href="/admin/users">Users</a>
-        <a href="/admin/audit">Audit trail</a>
-        <a href="/admin/settings">Settings</a>
-        <% } %>
-      <% } %>
+      <% links.forEach(function(l) { %><a href="<%= l[0] %>"><%= l[1] %></a><% }) %>
       <form method="post" action="/logout"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="linkish">Sign out (<%= user.email %>)</button></form>
     </nav>
   </details>

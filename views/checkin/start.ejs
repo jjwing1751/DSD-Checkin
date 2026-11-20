@@ -1,11 +1,16 @@
 <%- include('../partials/head') %>
-<section class="card narrow">
-  <p class="muted">#<%= store.store_number %></p>
-  <h1><%= store.name %></h1>
-  <p><%= user.name %><%= company ? ' · ' + company.name : '' %></p>
-  <form method="post" action="/s/<%= token %>/checkin" id="checkin-form" class="stack">
-    <%- include('../partials/csrf') %>
-    <input type="hidden" name="lat"><input type="hidden" name="lng"><input type="hidden" name="accuracy">
+<form method="post" action="/s/<%= token %>/checkin" id="checkin-form">
+  <%- include('../partials/csrf') %>
+  <input type="hidden" name="lat"><input type="hidden" name="lng"><input type="hidden" name="accuracy">
+  <div class="checkin-hero">
+    <div class="meta">Store #<%= store.store_number %></div>
+    <div class="store"><%= store.name %></div>
+    <div class="meta"><%= user.name %><%= company ? ' · ' + company.name : '' %></div>
+  </div>
+  <button class="btn primary big block" id="checkin-btn">Check in</button>
+  <p class="muted small center" id="geo-status">Checking your location…</p>
+  <details class="optional">
+    <summary>Visit details (optional)</summary>
     <% if (expected.length) { %>
       <label>Scheduled visit<select name="expected_visit_id">
         <% expected.forEach(function(e) { %><option value="<%= e.id %>"><%= VISIT_TYPES[e.visit_type] %> · <%= fmtClock(e.window_start) %>–<%= fmtClock(e.window_end) %></option><% }) %>
@@ -15,9 +20,7 @@
     <label>Visit type<select name="visit_type">
       <% Object.keys(VISIT_TYPES).forEach(function(k) { %><option value="<%= k %>" <%= k === defaultType ? 'selected' : '' %>><%= VISIT_TYPES[k] %></option><% }) %>
     </select></label>
-    <label>Purpose or work order (optional)<input name="purpose" maxlength="300"></label>
-    <p class="muted small" id="geo-status">Checking your location…</p>
-    <button class="btn primary big block" id="checkin-btn">Check in</button>
-  </form>
-</section>
+    <label>Purpose or work order<input name="purpose" maxlength="300"></label>
+  </details>
+</form>
 <%- include('../partials/foot') %>
