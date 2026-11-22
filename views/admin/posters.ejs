@@ -1,0 +1,25 @@
+<%- include('../partials/printhead') %>
+<div class="no-print poster-toolbar">
+  <a class="btn" href="<%= back %>">← Back</a>
+  <button class="btn primary" data-print>Print <%= posters.length === 1 ? 'poster' : posters.length + ' posters' %></button>
+  <span class="muted small">One poster per letter page. Tape it at eye level by the back door.</span>
+</div>
+<% if (!posters.length) { %>
+  <p class="no-print center">No active stores to print. Add a store, or load test data in Admin › Settings.</p>
+<% } %>
+<% posters.forEach(function(p) { %>
+<div class="poster">
+  <% if (p.s.is_demo) { %><p class="poster-test">TEST STORE · NOT FOR REAL CHECK-INS</p><% } %>
+  <h1>Vendors &amp; visitors</h1>
+  <h2>Check in here</h2>
+  <img src="<%= p.qr %>" alt="Check-in QR code for <%= p.s.name %>">
+  <ol class="poster-steps">
+    <li>Open your phone camera and point it at the code.</li>
+    <li>Tap the link and sign in with your company email.</li>
+    <li>Tap <strong>Check in</strong>. Tap <strong>Check out</strong> when you leave.</li>
+  </ol>
+  <p class="poster-store">#<%= p.s.store_number %> <%= p.s.name %></p>
+  <p class="poster-url"><%= p.url %></p>
+</div>
+<% }) %>
+</body></html>

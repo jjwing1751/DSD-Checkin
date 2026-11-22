@@ -6,6 +6,7 @@
     <p>Test data is loaded: 8 stores (D101 to D302), 20 vendor companies, their reps, and 90 days of check-ins. Everything test is marked and can be removed in one step.</p>
     <div class="btn-row">
       <form method="post" action="/admin/demo"><%- include('../partials/csrf') %><input type="hidden" name="action" value="reload"><button class="btn">Reload with fresh dates</button></form>
+      <a class="btn" href="/admin/posters?stores=test">Print test store QR posters</a>
       <form method="post" action="/admin/demo"><%- include('../partials/csrf') %><input type="hidden" name="action" value="remove"><button class="btn danger">Remove test data</button></form>
     </div>
   <% } else { %>

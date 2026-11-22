@@ -182,12 +182,25 @@ body.rep main { max-width: 480px; }
 body.print { background: #fff; }
 .print-page { max-width: 900px; margin: 0 auto; padding: 16px; }
 .roster td.box { font-size: 1.2rem; width: 30px; }
-.poster { text-align: center; padding: 24px 16px; max-width: 800px; margin: 0 auto; }
+.poster-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; max-width: 800px; margin: 12px auto 0; padding: 0 16px; }
+.poster { text-align: center; padding: 24px 16px; max-width: 800px; margin: 0 auto; border-bottom: 1px dashed var(--line, #ccc); }
+.poster:last-child { border-bottom: 0; }
 .poster h1 { font-size: 2.6rem; margin: .2em 0 0; color: var(--ink); }
 .poster h2 { font-size: 1.8rem; margin: 0 0 .4em; color: var(--accent); }
 .poster img { width: 100%; max-width: 520px; image-rendering: pixelated; }
-.poster-steps { font-size: 1.1rem; } .poster-store { font-size: 1.3rem; font-weight: 700; } .poster-url { color: var(--muted); font-size: .8rem; word-break: break-all; }
-@media print { .no-print { display: none !important; } .topbar { display: none; } body { background: #fff; } }
+.poster-steps { display: inline-block; text-align: left; font-size: 1.15rem; line-height: 1.6; margin: .6em auto; padding-left: 1.4em; }
+.poster-store { font-size: 1.4rem; font-weight: 700; margin: .4em 0 .2em; }
+.poster-url { color: var(--muted); font-size: .8rem; word-break: break-all; }
+.poster-test { display: inline-block; margin: 0; padding: 4px 10px; border: 2px solid #b45309; color: #b45309; font-weight: 700; font-size: .85rem; letter-spacing: .04em; }
+@page { size: letter; margin: .5in; }
+@media print {
+  .no-print { display: none !important; } .topbar { display: none; } body { background: #fff; }
+  .poster { border: 0; padding: 0; max-width: none; break-after: page; page-break-after: always; break-inside: avoid; }
+  .poster:last-child { break-after: auto; page-break-after: auto; }
+  .poster h1 { font-size: 40pt; } .poster h2 { font-size: 28pt; }
+  .poster img { width: 5.2in; max-width: 5.2in; }
+  .poster-steps { font-size: 15pt; } .poster-store { font-size: 20pt; }
+}
 @media (max-width: 600px) { main { padding: 10px 12px 32px; } .card { padding: 12px; } }
 .mt { margin-top: 12px; } .center { text-align: center; }
 .form-grid fieldset:not(.days) { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 0 12px; }

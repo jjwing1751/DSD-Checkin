@@ -1,5 +1,6 @@
 <%- include('../partials/head', { wide: true }) %>
 <h1>Stores setup</h1>
+<div class="btn-row"><a class="btn" href="/admin/posters">Print all QR posters</a></div>
 <details class="card"><summary><strong>+ Add a store</strong></summary>
   <form method="post" action="/admin/stores" class="form-grid"><%- include('../partials/csrf') %><%- include('_storefields', { s: {} }) %><button class="btn primary">Add store</button></form>
 </details>
