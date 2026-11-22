@@ -254,6 +254,22 @@ test('jobs run, auto-close leftover visits, and the retention purge removes old 
   assert.ok(n.n > 0);
 });
 
+test('QR posters open each store check-in page', async () => {
+  const ops = await staffLogin('ops@demo.example');
+  const stores = await db.many('SELECT id, qr_token FROM stores WHERE active ORDER BY store_number');
+  const all = await ops.get('/admin/posters');
+  assert.equal(all.status, 200);
+  assert.equal((all.text.match(/class="poster"/g) || []).length, stores.length);
+  for (const s of stores) assert.ok(all.text.includes(`/s/${s.qr_token}`), `poster for store ${s.id}`);
+  const one = await ops.get(`/admin/stores/${stores[0].id}/poster`);
+  assert.equal((one.text.match(/class="poster"/g) || []).length, 1);
+  assert.match(one.text, /data:image\/png;base64,/);
+  const rep = (await repLogin('pat@prairiesnacks.example')).c;
+  const page = await rep.get(`/s/${stores[0].qr_token}`);
+  assert.equal(page.status, 200);
+  assert.match(page.text, /Check in/);
+});
+
 test('every staff page renders', async () => {
   const ops = await staffLogin('admin@demo.example');
   const s = await store('101');
@@ -261,7 +277,7 @@ test('every staff page renders', async () => {
   const agr = await db.one(`SELECT id FROM service_agreements LIMIT 1`);
   const u = await db.one(`SELECT id FROM users LIMIT 1`);
   const v = await db.one(`SELECT id FROM visits WHERE store_id = $1 LIMIT 1`, [s.id]);
-  for (const url of ['/admin', '/admin/stores', `/admin/stores/${s.id}`, `/admin/stores/${s.id}/poster`, '/admin/vendors', `/admin/vendors/${vendor.id}`,
+  for (const url of ['/admin', '/admin/stores', `/admin/stores/${s.id}`, `/admin/stores/${s.id}/poster`, '/admin/posters', '/admin/posters?stores=test', '/admin/vendors', `/admin/vendors/${vendor.id}`,
     '/admin/insurance', '/admin/credentials', '/admin/identity', '/admin/users', `/admin/users/${u.id}`, '/admin/settings', '/admin/audit',
     '/admin/audit?format=csv', '/reports', '/reports?group=month', '/reports?group=store', '/reports?group=store_day', '/reports?group=store_month', '/reports?group=vendor', '/reports?group=store_day&format=csv', '/reports/visits', '/reports/visits?format=csv', '/stores', `/store/${s.id}`, `/store/${s.id}/history`, `/store/${s.id}/history?format=csv`,
     `/store/${s.id}/visits/${v.id}`, '/merchant', `/merchant/agreements/${agr.id}`, '/merchant/compliance', '/merchant/compliance?format=csv']) {

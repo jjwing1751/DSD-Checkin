@@ -98,13 +98,30 @@ router.post('/admin/stores/:id', ops, async (req, res) => {
   res.redirect(`/admin/stores/${id}`);
 });
 
-// Printable backdoor poster.
+// Printable backdoor posters: one store, or a batch (all active stores, or only the test stores).
+async function posterFor(req, s) {
+  const url = `${baseUrl(req)}/s/${s.qr_token}`;
+  const qr = await QRCode.toDataURL(url, { width: 900, margin: 1, errorCorrectionLevel: 'M' });
+  return { s, url, qr };
+}
+
 router.get('/admin/stores/:id/poster', ops, async (req, res) => {
   const s = await db.one('SELECT * FROM stores WHERE id = $1', [intParam(req.params.id)]);
   if (!s) throw httpError(404, 'Not found');
-  const url = `${baseUrl(req)}/s/${s.qr_token}`;
-  const qr = await QRCode.toDataURL(url, { width: 900, margin: 1, errorCorrectionLevel: 'M' });
-  res.render('admin/poster', { title: `Check-in poster: ${s.name}`, s, url, qr, layout: 'print' });
+  const posters = [await posterFor(req, s)];
+  res.render('admin/posters', { title: `Check-in poster: ${s.name}`, posters, back: `/admin/stores/${s.id}` });
+});
+
+router.get('/admin/posters', ops, async (req, res) => {
+  const testOnly = req.query.stores === 'test';
+  const stores = await db.many(
+    `SELECT * FROM stores WHERE active ${testOnly ? 'AND is_demo' : ''} ORDER BY store_number`);
+  const posters = [];
+  for (const s of stores) posters.push(await posterFor(req, s));
+  res.render('admin/posters', {
+    title: testOnly ? 'Check-in posters: test stores' : 'Check-in posters: all stores',
+    posters, back: testOnly ? '/admin/settings' : '/admin/stores',
+  });
 });
 
 // ---------- Vendor companies ----------
